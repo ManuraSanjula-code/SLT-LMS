@@ -1,0 +1,108 @@
+package com.slt.peotv.lmsmangmentservice.model;
+
+import com.slt.peotv.lmsmangmentservice.model.types.MovementType;
+
+import java.util.Date;
+
+public class MovementReq {
+    private String employeeId; //✅
+    private String userId;
+    private MovementType movementType; //✅
+    private String comment; //✅
+    private String inTime; //✅
+    private String outTime; //✅
+    private String destination; //✅
+    private String category; //✅
+
+    private Date absentdate;
+    private Date latedate;
+    private Date unSuccessfulAttdate; //unSuccessful attendance
+
+    public Date getAbsentdate() {
+        return absentdate;
+    }
+
+    public void setAbsentdate(Date absentdate) {
+        this.absentdate = absentdate;
+    }
+
+    public Date getLatedate() {
+        return latedate;
+    }
+
+    public void setLatedate(Date latedate) {
+        this.latedate = latedate;
+    }
+
+    public Date getUnSuccessfulAttdate() {
+        return unSuccessfulAttdate;
+    }
+
+    public void setUnSuccessfulAttdate(Date unSuccessfulAttdate) {
+        this.unSuccessfulAttdate = unSuccessfulAttdate;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public MovementType getMovementType() {
+        return movementType;
+    }
+
+    public void setMovementType(MovementType movementType) {
+        this.movementType = movementType;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public String getInTime() {
+        return inTime;
+    }
+
+    public void setInTime(String inTime) {
+        this.inTime = inTime;
+    }
+
+    public String getOutTime() {
+        return outTime;
+    }
+
+    public void setOutTime(String outTime) {
+        this.outTime = outTime;
+    }
+
+    public String getDestination() {
+        return destination;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+}
