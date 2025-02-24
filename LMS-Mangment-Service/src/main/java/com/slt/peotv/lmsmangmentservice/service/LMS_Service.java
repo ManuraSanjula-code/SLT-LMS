@@ -21,9 +21,9 @@ public interface LMS_Service {
 
     public List<AttendanceEntity> getAllAttendance();
     public List<AttendanceEntity> getAttendanceByUserId(String userId);
-    public AttendanceEntity getOneAttendanceByEmployeeId(String employeeId);
+    public List<AttendanceEntity> getAttendanceByEmployeeId(String employeeId);
 
-    public void createMovements(MovementsEntity entity);
+    public void createMovements(MovementsEntity entity); //💯
     public List<MovementsEntity> getAllMovementByUser(UserEntity user);
     public List<MovementsEntity> getAllMovements();
     public MovementsEntity getMovement(String publicId);
@@ -34,36 +34,35 @@ public interface LMS_Service {
     public List<NoPayEntity> getAllNoPayByUser(UserEntity user);
     public List<NoPayEntity> getAllNoPays();
     public NoPayEntity getNoPay(String publicId);
-    public void updateNoPay(NoPayEntity entity, String publicId);
     public void deleteNoPay(String publicId);
 
-    public void saveLeave(LeaveEntity entity);
-    public List<LeaveEntity> getAllLeaveByUserByPubicId(String user);
+    public void saveLeave(LeaveEntity entity); //💯
+    public List<LeaveEntity> getAllLeaveByUserByPubicId(String user); //💯
     public List<LeaveEntity> getAllLeaveByUserByEmployeeId(String user);
     public List<LeaveEntity> getAllLeaves();
-    public LeaveEntity getOneLeave(String publicId);
+    public LeaveEntity getOneLeave(String publicId); //💯
     public void deleteLeave(String publicId);
 
     public void saveUser(UserEntity entity);
     public List<UserEntity> getAllUsers();
-    public void updateUser(String user, UserEntity entity);
-    public UserEntity getUserByPublicId(String user);
-    public UserEntity getUserByEmployeeId(String user);
-    public void deleteUser(String user);
+    public UserEntity getUserByUserId(String user); //💯
+    public UserEntity getUserByEmployeeId(String user); //💯
+    public void deleteUserByUserId(String user);
+    public void deleteUserByEmployeeID(String user);
 
-    public void saveAttendanceType(String shortName);
+    public void saveAttendanceType(String shortName, String Description);
     public AttendanceTypeEntity getAttendanceType(String shortName);
-    public void updateAttendanceType(String publicId, String shortName);
-    public void deleteAttendanceType(String shortName, String publicId);
+    public void updateAttendanceType(String old_shortName, String shortName, String Description);
+    public void deleteAttendanceType(String shortName);
 
     public void saveLeaveCategory(String name);
-    public LeaveCategoryEntity getLeaveCategory(String name,String publicId);
-    public void updateLeaveCategory(String old_name, String name,String publicId);
-    public void deleteLeaveCategory(String name, String publicId);
+    public LeaveCategoryEntity getLeaveCategory(String name); //💯
+    public void updateLeaveCategory(String old_name, String name);
+    public void deleteLeaveCategory(String name);
 
-    public void saveLeaveType(String name);
-    public LeaveTypeEntity getLeaveType(String name,String publicId);
-    public void updateLeaveType(String old_name,String name);
-    public void deleteLeaveType(String name,String publicId);
+    public void saveLeaveType(String name); //✅
+    public LeaveTypeEntity getLeaveType(String name); //💯✅
+    public void updateLeaveType(String old_name,String name); //✅
+    public void deleteLeaveType(String name);//✅
 
 }

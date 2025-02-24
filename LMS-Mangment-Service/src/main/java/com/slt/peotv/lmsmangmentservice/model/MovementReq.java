@@ -1,9 +1,13 @@
 package com.slt.peotv.lmsmangmentservice.model;
 
 import com.slt.peotv.lmsmangmentservice.model.types.MovementType;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Date;
 
+@Getter
+@Setter
 public class MovementReq {
     private String employeeId; //✅
     private String userId;
@@ -17,6 +21,39 @@ public class MovementReq {
     private Date absentdate;
     private Date latedate;
     private Date unSuccessfulAttdate; //unSuccessful attendance
+
+    private Boolean isLate;
+    private Boolean isAbsent;
+    private Boolean isLateCover;
+    private Boolean isUnSuccessfulAttdate;
+
+    public void setUnSuccessfulAttdate(Boolean unSuccessfulAttdate) {
+        isUnSuccessfulAttdate = unSuccessfulAttdate;
+    }
+
+    public Boolean getLate() {
+        return isLate;
+    }
+
+    public void setLate(Boolean late) {
+        isLate = late;
+    }
+
+    public Boolean getAbsent() {
+        return isAbsent;
+    }
+
+    public void setAbsent(Boolean absent) {
+        isAbsent = absent;
+    }
+
+    public Boolean getLateCover() {
+        return isLateCover;
+    }
+
+    public void setLateCover(Boolean lateCover) {
+        isLateCover = lateCover;
+    }
 
     public Date getAbsentdate() {
         return absentdate;

@@ -1,7 +1,10 @@
 package com.slt.peotv.lmsmangmentservice.service.impl;
 
+import com.slt.peotv.lmsmangmentservice.entity.Absentee.AbsenteeEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Attendance.AttendanceEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveCategoryRemainingEntity;
+import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveCategoryTotalEntity;
+import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveTypeRemaining;
 import com.slt.peotv.lmsmangmentservice.entity.archive.AttendanceEntity_;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.LeaveEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
@@ -11,6 +14,7 @@ import com.slt.peotv.lmsmangmentservice.entity.NoPayEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.basic.RoleEntity;
 import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity_;
+import com.slt.peotv.lmsmangmentservice.exceptions.ErrorMessages;
 import com.slt.peotv.lmsmangmentservice.model.LeaveReq;
 import com.slt.peotv.lmsmangmentservice.model.MovementReq;
 import com.slt.peotv.lmsmangmentservice.model.types.MovementType;
@@ -25,10 +29,13 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Time;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity;
 
@@ -36,6 +43,57 @@ import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity;
 public class Check_Service_Impl implements Check_Service {
 
 
+    @Service
+    public class Helper {
+
+        @Autowired
+        private static AttendanceRepo attendanceRepo;
+
+        @Autowired
+        private static UserRepo userRepo;
+
+        @Autowired
+        private static ServiceEvent serviceEvent;
+
+        @Autowired
+        private static UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
+
+        public void handleLateAndUnsuccessful(UserEntity user, AttendanceEntity attendanceEntity) {
+
+            UserLeaveCategoryRemainingEntity remaining_short_Leaves =
+                    serviceEvent.getUserLeaveCategoryRemaining("SHORT_LEAVE", user.getUserId(), user.getEmployeeId());
+
+            UserLeaveCategoryRemainingEntity remaining_half_Day =
+                    serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
+
+            if (remaining_short_Leaves.getRemainingLeaves() < 1) { /// check are there any short leaves
+            /// No short leaves
+
+                if (remaining_half_Day.getRemainingLeaves() < 1) { /// check are there any half days
+                /// No half days
+                    saveNoPayEntity(user,true,false,false,false, false);
+                } else {
+
+                    /// there are half days
+                    remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
+
+                    userRepo.save(user);
+                    if(attendanceEntity != null)
+                     attendanceRepo.save(attendanceEntity);
+                    userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
+                }
+
+            } else {
+                /// there are short leaves
+
+                remaining_short_Leaves.setRemainingLeaves(remaining_short_Leaves.getRemainingLeaves() - 1);
+                userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
+                userRepo.save(user);
+                if(attendanceEntity != null)
+                    attendanceRepo.save(attendanceEntity);
+            }
+        }
+    }
     /// Process Leaves and request leaves ✅✅ ❌
     /// Process movement and request movement ❌✅
     /// Checking user have enough leaves ✅❌
@@ -111,26 +169,36 @@ public class Check_Service_Impl implements Check_Service {
     ///
     /// what if there is no leaves but it's important (make a specail function to requst movement like that )
     /// ----------------------------------------------------  Calculate the final outcome ---------------------------------------------------------------------
-    ///
 
     @Autowired
     private AttendanceRepo_ attendanceRepo_;
 
     @Autowired
     private AttendanceRepo attendanceRepo;
-
     @Autowired
     private LMS_Service lmsService;
-
     @Autowired
     private UserRepo userRepo;
-
     @Autowired
-    private Utils utils;
-
+    private static Utils utils;
     @Autowired
     private InOutRepo inOutRepo;
-
+    @Autowired
+    private MovementsRepo movementsRepo;
+    @Autowired
+    private static NoPayRepo noPayRepo;
+    @Autowired
+    private ServiceEvent serviceEvent;
+    @Autowired
+    private AbsenteeRepo absenteeRepo;
+    @Autowired
+    private LeaveTypeRepo leaveTypeRepo;
+    @Autowired
+    private UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
+    @Autowired
+    private Helper helper;
+    @Autowired
+    private LeaveRepo leaveRepo;
     private final ModelMapper modelMapper = new ModelMapper();
 
     public static boolean hasRole(Collection<RoleEntity> roles, String rol) {
@@ -144,30 +212,34 @@ public class Check_Service_Impl implements Check_Service {
     @Override
     public void requestMovement(MovementReq req) {
 
-        UserEntity u = lmsService.getUserByPublicId(
+        UserEntity u = lmsService.getUserByUserId(
                 (req.getUserId() != null && !req.getUserId().isEmpty()) ? req.getUserId() : req.getEmployeeId()
         );
+        UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", u);
+        UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", u);
+        UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", u);
+        UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", u);
+        UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", u);
+        UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", u);
+
         switch (req.getCategory()) {
             case "CASUAL" -> {
-                if (u.getTot_CASUAl_Leaves() < 1) return;
+                if (casual.getRemainingLeaves() < 1) return;
             }
             case "ANNUAL" -> {
-                if (u.getTot_ANNUAL_Leaves() < 1) return;
+                if (annual.getRemainingLeaves() < 1) return;
             }
             case "SICK" -> {
-                if (u.getTot_SICK_Leaves() < 1) return;
+                if (sick.getRemainingLeaves() < 1) return;
             }
             case "SPECIAL" -> {
-                if (u.getTot_SPECIAL_Leaves() < 1) return;
+                if (special.getRemainingLeaves() < 1) return;
             }
             case "DUTY" -> {
-                if (u.getTot_DUTY_Leaves() < 1) return;
-            }
-            case "SHORT_LEAVE" -> {
-                if (u.getTot_SHORT_LEAVE_Leaves() < 1) return;
+                if (duty.getRemainingLeaves() < 1) return;
             }
             case "MATERNITY LEAVE" -> {
-                if (u.getTot_MATERNITY_LEAVE_Leaves() < 1) return;
+                if (maternityLeave.getRemainingLeaves() < 1) return;
             }
             default -> {
                 throw new IllegalArgumentException("Invalid leave type: " + req.getCategory());
@@ -183,6 +255,13 @@ public class Check_Service_Impl implements Check_Service {
         movementsEntity.setReqDate(new Date());
         movementsEntity.setLogTime(new Date());
 
+        movementsEntity.setIsAbsent(req.getAbsent());
+        movementsEntity.setIsLate(req.getLate());
+        movementsEntity.setIsLateCover(req.getLateCover());
+        movementsEntity.setIsUnSuccessfulAttdate(req.getIsUnSuccessfulAttdate());
+        movementsEntity.setIsPending(false);
+        movementsEntity.setIsAccepted(false);
+        movementsEntity.setIsExpired(false);
         lmsService.createMovements(movementsEntity);
 
     }
@@ -191,6 +270,9 @@ public class Check_Service_Impl implements Check_Service {
     public void approvedMove(MovementsEntity entity) {
         UserEntity user = lmsService.getUserByEmployeeId(entity.getUser().getEmployeeId());
         MovementType movementType = entity.getMovementType();
+
+        /// When Adding a due date make sure put extra 1 month 2 weeks
+
         if (movementType == MovementType.ABSENT) {
             ///  what is type employee should have if employee is absent
             ///  and check that leave type and check how many remain are there
@@ -258,58 +340,26 @@ public class Check_Service_Impl implements Check_Service {
         return Date.from(yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
+    public static NoPayEntity saveNoPayEntity(UserEntity user, Boolean isHalfDay, Boolean unSuccessful, Boolean isLate, Boolean isLateCover,Boolean isAbsent) {
+        NoPayEntity nopayEntity = new NoPayEntity();
+        nopayEntity.setUser(user);
+        nopayEntity.setPublicId(utils.generateId(10));
+        nopayEntity.setAcctual_date(new Date());
+        nopayEntity.setSubmissionDate(new Date());
+        nopayEntity.setIsHalfDay(isHalfDay);
+        nopayEntity.setUnSuccessful(unSuccessful);
+        nopayEntity.setIsLate(isLate);
+        nopayEntity.setIsLateCover(isLateCover);
+        nopayEntity.setIsLateCover(isLateCover);
+        nopayEntity.setIsAbsent(isAbsent);
+        nopayEntity = noPayRepo.save(nopayEntity);
+
+        return nopayEntity;
+    }
     @Override
     public void main() {
 
-        class Helper {
 
-            @Autowired
-            private static AttendanceRepo attendanceRepo;
-
-            @Autowired
-            private static UserRepo userRepo;
-
-            @Autowired
-            private static ServiceEvent serviceEvent;
-
-            @Autowired
-            private static UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
-
-            public static void handleLateAndUnsuccessful(UserEntity user, AttendanceEntity attendanceEntity) {
-
-                UserLeaveCategoryRemainingEntity remaining_short_Leaves =
-                        serviceEvent.getUserLeaveCategoryRemaining("SHORT_LEAVE", user.getUserId(), user.getEmployeeId());
-
-                UserLeaveCategoryRemainingEntity remaining_half_Day =
-                        serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
-
-                if (remaining_short_Leaves.getRemainingLeaves() < 1) { /// check are there any short leaves
-                      /// No short leaves
-
-                    if (remaining_half_Day.getRemainingLeaves() < 1) { /// check are there any half days
-                        /// No half days
-                        NoPayEntity nopayEntity = new NoPayEntity();
-
-                    } else {
-
-                        /// there are half days
-                        remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
-
-                        userRepo.save(user);
-                        attendanceRepo.save(attendanceEntity);
-                        userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
-                    }
-
-                } else {
-                    /// there are short leaves
-
-                    remaining_short_Leaves.setRemainingLeaves(remaining_short_Leaves.getRemainingLeaves() - 1);
-                    userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
-                    userRepo.save(user);
-                    attendanceRepo.save(attendanceEntity);
-                }
-            }
-        }
         /// Get All Attendance -----------------------------------------------------------------
 
         List<AttendanceEntity> yesterdayAttendance = attendanceRepo.findYesterdayAttendance();
@@ -321,17 +371,49 @@ public class Check_Service_Impl implements Check_Service {
             Boolean unSuccessful = attendanceEntity.getUnSuccessful();
             Boolean isHalfDay = attendanceEntity.getIsHalfDay();
 
+            // Convert Time objects to milliseconds
+            long diffInMillis = attendanceEntity.getArrival_time().getTime() - attendanceEntity.getLeft_time().getTime();
+
+            // 4 hours in milliseconds
+            long fourHoursInMillis = 4 * 60 * 60 * 1000;
+
+            if (diffInMillis == fourHoursInMillis) {
+                System.out.println("The time difference is exactly 4 hours.");
+                attendanceEntity.setHalfDay(true);
+                isHalfDay = true;
+            } else {
+                System.out.println("The time difference is NOT exactly 4 hours.");
+            }
+
             UserEntity user = userRepo.findByEmployeeId(attendanceEntity.getUser().getEmployeeId());
             if (user == null) return;
 
-            if (isLate && !lateCover) {
-                Helper.handleLateAndUnsuccessful(user, attendanceEntity);
+            if(isHalfDay){
+                UserLeaveCategoryRemainingEntity remaining_half_Day =
+                        serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
+
+                if (remaining_half_Day.getRemainingLeaves() < 1) { /// check are there any half days
+                    /// No half days
+                    saveNoPayEntity(user,true,false,false,false, false);
+                } else {
+
+                    /// there are half days
+                    remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
+
+                    userRepo.save(user);
+                    attendanceRepo.save(attendanceEntity);
+                    userLeaveCategoryRemainingRepo.save(remaining_half_Day);
+                }
+            }
+            else if(isLate && !lateCover) {
+                helper.handleLateAndUnsuccessful(user, attendanceEntity);
             } else if (isLate) {
-                Helper.handleLateAndUnsuccessful(user, attendanceEntity);
+                helper.handleLateAndUnsuccessful(user, attendanceEntity);
             } else if (unSuccessful) {
-                Helper.handleLateAndUnsuccessful(user, attendanceEntity);
+                helper.handleLateAndUnsuccessful(user, attendanceEntity);
             }
         });
+
 
         /// Get all the leaves  ---------------------------------------------------------------------------------
         /// -----------------------------------------------------------------------------------------------------
@@ -341,12 +423,49 @@ public class Check_Service_Impl implements Check_Service {
         /// if employee notify a short leave day but in that day he/she not going short leave it will not consider as short leave
         /// if employee notify a leave day but in that day he/she not going leave it will not consider as leave
 
+
         /// if admin not approved the leaving request but he/she absent today it will cut off one leave but there is no leaves it will going nopay
 
         /// Get all the movements -------------------------------------------------------------------------------
         /// -----------------------------------------------------------------------------------------------------
         /// -----------------------------------------------------------------------------------------------------
 
+        Iterable<MovementsEntity> all = movementsRepo.findOverdueEntities(new Date());
+
+        List<MovementsEntity> filtered = StreamSupport.stream(all.spliterator(), false)
+                .filter(entity -> Boolean.TRUE.equals(entity.getIsLate()) ||
+                        Boolean.TRUE.equals(entity.getIsUnSuccessfulAttdate()) ||
+                        Boolean.TRUE.equals(entity.getIsLateCover()) ||
+                        Boolean.TRUE.equals(entity.getIsAbsent()))
+                .collect(Collectors.toList());
+
+        filtered.forEach(movement -> {
+            if (!movement.getIsAccepted() && movement.getIsPending()) {
+                ///  Check due date pass or not if pass movement expired and employee leaves might reduce and there is no leaves it will consider as nopay
+                movement.setExpired(true);
+                List<UserLeaveTypeRemaining> userLeaveCategoryRemaining = serviceEvent.getUserLeaveTypeRemaining(movement.getUser());
+
+                List<UserLeaveTypeRemaining> filteredList = userLeaveCategoryRemaining.stream()
+                        .filter(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1)
+                        .collect(Collectors.toList());
+
+                boolean allMatch = userLeaveCategoryRemaining.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
+
+                if (allMatch) {
+                    System.out.println("All elements have remainingLeaves < 1");
+
+                    saveNoPayEntity(movement.getUser(),movement.getIsHalfDay(),
+                            movement.getIsUnSuccessfulAttdate(),movement.getIsLate(),movement.getIsLateCover(),
+                            movement.getIsAbsent());
+
+                } else {
+                    System.out.println("At least one element has remainingLeaves >= 1");
+                }
+            }
+
+        });
+
+        /// check the due date expire or not
         /// if employee is late he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
         /// if employee is unSuccessful he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
         /// if employee is absent he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
@@ -387,7 +506,7 @@ public class Check_Service_Impl implements Check_Service {
 
 
     @Override
-    public void reportAttendance(InOutEntity inout, Boolean fullday, Boolean unAuthorized, Boolean late, Boolean late_cover) {
+    public void reportAttendance(InOutEntity inout, Boolean fullday, Boolean unAuthorized, Boolean late, Boolean late_cover, Boolean half_day) {
         UserEntity userByEmployeeId = lmsService.getUserByEmployeeId(inout.getEmployeeID());
 
         if (userByEmployeeId == null) return;
@@ -404,6 +523,7 @@ public class Check_Service_Impl implements Check_Service {
         attendance.setLateCover(late_cover);
         attendance.setUnSuccessful(unAuthorized);
         attendance.setFullDay(fullday);
+        attendance.setHalfDay(half_day);
 
         attendance.setArrival_date(inout.getPunchInMoa());
         attendance.setArrival_time(inout.getTimeMoa());
@@ -414,8 +534,75 @@ public class Check_Service_Impl implements Check_Service {
     }
 
     @Override
+    public void reportAbsent(List<InOutEntity> inout, List<UserEntity> absentEmployeesToday) {
+
+    }
+
+    @Override
     public void reportAbsent(InOutEntity inout, List<UserEntity> absentEmployeesToday) {
 
+    }
+
+    private UserEntity getUser(String user_id, String employee_id) {
+        UserEntity userByEmployeeId = lmsService.getUserByEmployeeId(user_id);
+        UserEntity userByUserId = lmsService.getUserByUserId(user_id);
+
+        UserEntity user = null;
+
+        if (userByEmployeeId != null)
+            user = userByEmployeeId;
+        else if (userByUserId != null)
+            user = userByUserId;
+        return user;
+    }
+
+    @Override
+    public void reportAbsent(List<UserEntity> absentEmployeesToday) {
+
+        absentEmployeesToday.forEach(employee -> {
+
+            UserEntity user = getUser(employee.getUserId(), employee.getEmployeeId());
+            if (user == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+            ;
+
+            AbsenteeEntity absenteeEntity = new AbsenteeEntity();
+            absenteeEntity.setPublicId(utils.generateId(10));
+            absenteeEntity.setUser(user);
+            absenteeEntity.setDate(new Date());
+            absenteeEntity.setSwipeErr(false);
+            absenteeEntity.setIsHODApproved(false);
+            absenteeEntity.setIsSupervisedApproved(false);
+            absenteeEntity.setAudited(0);
+            absenteeEntity.setIsNoPay(0);
+
+            absenteeEntity.setIsAbsent(false);
+            absenteeEntity.setIsLate(false);
+            absenteeEntity.setIsLateCover(false);
+            absenteeEntity.setIsUnSuccessfulAttdate(false);
+            absenteeEntity.setIsHalfDay(false);
+
+            absenteeEntity.setIsPending(false);
+            absenteeEntity.setIsAccepted(false);
+
+            List<UserLeaveTypeRemaining> userLeaveCategoryRemaining = serviceEvent.getUserLeaveTypeRemaining(user);
+
+            boolean allMatch = userLeaveCategoryRemaining.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
+
+            if (allMatch) {
+                System.out.println("All elements have remainingLeaves < 1");
+                absenteeEntity.setIsNoPay(1);
+
+                saveNoPayEntity(user,true,false,false,false, true);
+
+
+            } else {
+                absenteeEntity.setIsNoPay(0);
+                System.out.println("At least one element has remainingLeaves >= 1");
+                /// Cut of the leave category if employee is absent
+            }
+            absenteeRepo.save(absenteeEntity);
+
+        });
     }
 
     @Override
@@ -429,12 +616,12 @@ public class Check_Service_Impl implements Check_Service {
             commonEmployees.retainAll(employeesLeftBetween500And530);
 
             for (InOutEntity commonEmployee : commonEmployees)
-                reportAttendance(commonEmployee, true, false, false, false);
+                reportAttendance(commonEmployee, true, false, false, false, false);
 
         } else {
             /// UnSuccessful or UnAuthorized employees
             for (InOutEntity employee : employeesArrivedBefore830)
-                reportAttendance(employee, false, true, false, false);
+                reportAttendance(employee, false, true, false, false, false);
         }
 
         // =======================================================================================================
@@ -449,51 +636,62 @@ public class Check_Service_Impl implements Check_Service {
             commonEmployees.retainAll(employeesLeftBetween500And530);
 
             for (InOutEntity commonEmployee : commonEmployees)
-                reportAttendance(commonEmployee, false, false, true, true);
+                reportAttendance(commonEmployee, false, false, true, true, false);
 
         } else {
             /// Late employees those who not cover late work
             for (InOutEntity employee : employeesArrivedBefore830)
-                reportAttendance(employee, false, false, true, false);
+                reportAttendance(employee, false, false, true, false, false);
         }
 
         List<UserEntity> absentEmployeesToday = inOutRepo.findAbsentEmployeesYesterday(); /// Absent employees
+        reportAbsent(absentEmployeesToday);
+    }
 
+    private UserLeaveTypeRemaining getUserLeaveTypeRemaining(String name, UserEntity user) {
+        return serviceEvent.getUserLeaveTypeRemaining(name, user.getUserId(), user.getEmployeeId());
     }
 
     /// If employee make leave but he/she have no leaves it leave not accepting by admin but she/he absent it will consider sa no pay
     @Override
     public void requestALeave(LeaveReq req, String userId, String employeeId) { ///  Leave Request user - userId
-        UserEntity u = lmsService.getUserByPublicId(
+        UserEntity u = lmsService.getUserByUserId(
                 (userId != null && !userId.isEmpty()) ? userId : employeeId
         );
 
         if (u != null) {
 
-            LeaveCategoryEntity leaveCategory = lmsService.getLeaveCategory(req.getLeaveCategory(), null);
-            LeaveTypeEntity leaveType = lmsService.getLeaveType(req.getLeaveType(),null);
+            LeaveCategoryEntity leaveCategory = lmsService.getLeaveCategory(req.getLeaveCategory());
+            LeaveTypeEntity leaveType = lmsService.getLeaveType(req.getLeaveType());
+
+            UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", u);
+            UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", u);
+            UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", u);
+            UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", u);
+            UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", u);
+            UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", u);
 
             switch (leaveType.getName()) {
                 case "CASUAL" -> {
-                    if (u.getTot_CASUAl_Leaves() < 1) return;
+                    if (casual.getRemainingLeaves() < 1) return;
                 }
                 case "ANNUAL" -> {
-                    if (u.getTot_ANNUAL_Leaves() < 1) return;
+                    if (annual.getRemainingLeaves() < 1) return;
                 }
                 case "SICK" -> {
-                    if (u.getTot_SICK_Leaves() < 1) return;
+                    if (sick.getRemainingLeaves() < 1) return;
                 }
                 case "SPECIAL" -> {
-                    if (u.getTot_SPECIAL_Leaves() < 1) return;
+                    if (special.getRemainingLeaves() < 1) return;
                 }
                 case "DUTY" -> {
-                    if (u.getTot_DUTY_Leaves() < 1) return;
+                    if (duty.getRemainingLeaves() < 1) return;
                 }
-                case "SHORT_LEAVE" -> {
-                    if (u.getTot_SHORT_LEAVE_Leaves() < 1) return;
-                }
-                case "MATERNITY LEAVE" -> {
-                    if (u.getTot_MATERNITY_LEAVE_Leaves() < 1) return;
+//                case "SHORT_LEAVE" -> {
+//                    if (u.getTot_SHORT_LEAVE_Leaves() < 1) return;
+//                }
+                case "MATERNITY_LEAVE" -> {
+                    if (maternityLeave.getRemainingLeaves() < 1) return;
                 }
                 default -> {
                     throw new IllegalArgumentException("Invalid leave type: " + leaveType.getName());
@@ -528,47 +726,48 @@ public class Check_Service_Impl implements Check_Service {
     public void approvedLeaveBySup(LeaveEntity entity) {
         UserEntity user = lmsService.getUserByEmployeeId(entity.getUser().getEmployeeId());
 
+        UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", user);
+        UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", user);
+        UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", user);
+        UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", user);
+        UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", user);
+        UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", user);
+
         switch (entity.getLeaveType().getName()) {
             case "CASUAL" -> {
-                if (user.getTot_CASUAl_Leaves() > 0) {
+                if (casual.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_CASUAl_Leaves(user.getTot_CASUAl_Leaves() - 1);
+                    casual.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
             case "ANNUAL" -> {
-                if (user.getTot_ANNUAL_Leaves() > 0) {
+                if (annual.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_ANNUAL_Leaves(user.getTot_ANNUAL_Leaves() - 1);
+                    annual.setRemainingLeaves(annual.getRemainingLeaves() - 1);
                 }
             }
             case "SICK" -> {
-                if (user.getTot_SICK_Leaves() > 0) {
+                if (sick.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_SICK_Leaves(user.getTot_SICK_Leaves() - 1);
+                    sick.setRemainingLeaves(sick.getRemainingLeaves() - 1);
                 }
             }
             case "SPECIAL" -> {
-                if (user.getTot_SPECIAL_Leaves() > 0) {
+                if (special.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_SPECIAL_Leaves(user.getTot_SPECIAL_Leaves() - 1);
+                    special.setRemainingLeaves(special.getRemainingLeaves() - 1);
                 }
             }
             case "DUTY" -> {
-                if (user.getTot_DUTY_Leaves() > 0) {
+                if (duty.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_DUTY_Leaves(user.getTot_DUTY_Leaves() - 1);
+                    duty.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
-            case "SHORT_LEAVE" -> {
-                if (user.getTot_SHORT_LEAVE_Leaves() > 0) {
+            case "MATERNITY_LEAVE" -> {
+                if (maternityLeave.getRemainingLeaves() > 0) {
                     entity.setSupervisedApproved(true);
-                    user.setTot_SHORT_LEAVE_Leaves(user.getTot_SHORT_LEAVE_Leaves() - 1);
-                }
-            }
-            case "MATERNITY LEAVE" -> {
-                if (user.getTot_MATERNITY_LEAVE_Leaves() > 0) {
-                    entity.setSupervisedApproved(true);
-                    user.setTot_MATERNITY_LEAVE_Leaves(user.getTot_MATERNITY_LEAVE_Leaves() - 1);
+                    maternityLeave.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
             default -> {
@@ -582,47 +781,48 @@ public class Check_Service_Impl implements Check_Service {
     public void approvedLeaveByHOD(LeaveEntity entity) {
         UserEntity user = lmsService.getUserByEmployeeId(entity.getUser().getEmployeeId());
 
+        UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", user);
+        UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", user);
+        UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", user);
+        UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", user);
+        UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", user);
+        UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", user);
+
         switch (entity.getLeaveType().getName()) {
             case "CASUAL" -> {
-                if (user.getTot_CASUAl_Leaves() > 0) {
+                if (casual.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_CASUAl_Leaves(user.getTot_CASUAl_Leaves() - 1);
+                    casual.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
             case "ANNUAL" -> {
-                if (user.getTot_ANNUAL_Leaves() > 0) {
+                if (annual.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_ANNUAL_Leaves(user.getTot_ANNUAL_Leaves() - 1);
+                    annual.setRemainingLeaves(annual.getRemainingLeaves() - 1);
                 }
             }
             case "SICK" -> {
-                if (user.getTot_SICK_Leaves() > 0) {
+                if (sick.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_SICK_Leaves(user.getTot_SICK_Leaves() - 1);
+                    sick.setRemainingLeaves(sick.getRemainingLeaves() - 1);
                 }
             }
             case "SPECIAL" -> {
-                if (user.getTot_SPECIAL_Leaves() > 0) {
+                if (special.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_SPECIAL_Leaves(user.getTot_SPECIAL_Leaves() - 1);
+                    special.setRemainingLeaves(special.getRemainingLeaves() - 1);
                 }
             }
             case "DUTY" -> {
-                if (user.getTot_DUTY_Leaves() > 0) {
+                if (duty.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_DUTY_Leaves(user.getTot_DUTY_Leaves() - 1);
+                    duty.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
-            case "SHORT_LEAVE" -> {
-                if (user.getTot_SHORT_LEAVE_Leaves() > 0) {
+            case "MATERNITY_LEAVE" -> {
+                if (maternityLeave.getRemainingLeaves() > 0) {
                     entity.setHODApproved(true);
-                    user.setTot_SHORT_LEAVE_Leaves(user.getTot_SHORT_LEAVE_Leaves() - 1);
-                }
-            }
-            case "MATERNITY LEAVE" -> {
-                if (user.getTot_MATERNITY_LEAVE_Leaves() > 0) {
-                    entity.setHODApproved(true);
-                    user.setTot_MATERNITY_LEAVE_Leaves(user.getTot_MATERNITY_LEAVE_Leaves() - 1);
+                    maternityLeave.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                 }
             }
             default -> {

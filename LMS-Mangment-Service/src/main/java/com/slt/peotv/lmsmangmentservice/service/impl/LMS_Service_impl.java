@@ -9,13 +9,17 @@ import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
 import com.slt.peotv.lmsmangmentservice.entity.MovementsEntity;
 import com.slt.peotv.lmsmangmentservice.entity.NoPayEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
+import com.slt.peotv.lmsmangmentservice.exceptions.LMSServiceException_AllReadyExits;
 import com.slt.peotv.lmsmangmentservice.repository.*;
 import com.slt.peotv.lmsmangmentservice.repository.archive.InOutRepo_;
 import com.slt.peotv.lmsmangmentservice.service.LMS_Service;
+import com.slt.peotv.lmsmangmentservice.exceptions.ErrorMessages;
 import com.slt.peotv.lmsmangmentservice.utils.Utils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -26,7 +30,7 @@ public class LMS_Service_impl implements LMS_Service {
     @Autowired
     private AttendanceRepo attendanceRepo;
     @Autowired
-    private AttendanceTypeRepo  attendanceTypeRepo;
+    private AttendanceTypeRepo attendanceTypeRepo;
     @Autowired
     private AuthorityRepo authorityRepo;
     @Autowired
@@ -42,266 +46,399 @@ public class LMS_Service_impl implements LMS_Service {
     @Autowired
     private NoPayRepo noPayRepo;
     @Autowired
-    private ProfilesRepo profilesRepo;
-    @Autowired
-    private RoleRepo roleRepo;
-    @Autowired
-    private SectionRepo sectionRepo;
-    @Autowired
-    private UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
-    @Autowired
-    private UserLeaveCategoryTotalRepo userLeaveCategoryTotalRepo;
-    @Autowired
-    private UserLeaveTypeTotalRepo userLeaveTypeTotalRepo;
-    @Autowired
-    private UserLeaveTypeRemainingRepo userLeaveTypeRemainingRepo;
-    @Autowired
     private UserRepo userRepo;
     @Autowired
     private InOutRepo_ inOutRepo_;
     @Autowired
     private Utils utils;
 
+    private final ModelMapper modelMapper = new ModelMapper();
+
     @Override
     public List<AbsenteeEntity> getAllAbsentee() {
-        return List.of();
+        return absenteeRepo.findAll();
     }
 
     @Override
     public AbsenteeEntity getOneAbsentee(String publicId, String useId, String employeeId) {
-        return null;
+        Optional<AbsenteeEntity> byPublicId = absenteeRepo.findByPublicId(publicId);
+        if(byPublicId.isPresent()) {
+            return byPublicId.get();
+        }else
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
     }
 
     @Override
     public void saveAbsentee(String userId, String employeeId, Boolean isHalfDay, Boolean swipeErr) {
+        AbsenteeEntity absentee = new AbsenteeEntity();
+        UserEntity userByUserId = userRepo.findByUserId(userId);
+        UserEntity userByEmployeeId = userRepo.findByEmployeeId(employeeId);
 
+        UserEntity user = new UserEntity();
+
+        if (userByEmployeeId != null)
+            user = userByEmployeeId;
+        else
+            user = userByUserId;
+
+        absentee.setUser(user);
+        absentee.setIsHalfDay(isHalfDay);
+        absentee.setSwipeErr(swipeErr);
+
+        absenteeRepo.save(absentee);
     }
 
     @Override
     public void deleteAbsentee(String publicId) {
-
+        Optional<AbsenteeEntity> byPublicId = absenteeRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent())
+            absenteeRepo.delete(byPublicId.get());
+        else
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
     }
 
     @Override
     public List<AttendanceEntity> getAllAttendance() {
-        return List.of();
+        return (List<AttendanceEntity>) attendanceRepo.findAll();
     }
 
     @Override
     public List<AttendanceEntity> getAttendanceByUserId(String userId) {
-        return List.of();
+        UserEntity userByEmployeeId = getUserByUserId(userId);
+        if (userByEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return attendanceRepo.findByUser(userByEmployeeId);
     }
 
     @Override
-    public AttendanceEntity getOneAttendanceByEmployeeId(String employeeId) {
-        return null;
+    public List<AttendanceEntity> getAttendanceByEmployeeId(String employeeId) {
+        UserEntity userByEmployeeId = getUserByEmployeeId(employeeId);
+        if (userByEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return attendanceRepo.findByUser(userByEmployeeId);
     }
 
     @Override
     public void createMovements(MovementsEntity entity) {
-
+        movementsRepo.save(entity);
     }
 
     @Override
     public List<MovementsEntity> getAllMovementByUser(UserEntity user) {
-        return List.of();
+        List<MovementsEntity> allByUser = movementsRepo.findAllByUser(user);
+        if (allByUser.isEmpty()) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return allByUser;
     }
 
     @Override
     public List<MovementsEntity> getAllMovements() {
-        return List.of();
+        return (List<MovementsEntity>) movementsRepo.findAll();
     }
 
     @Override
     public MovementsEntity getMovement(String publicId) {
-        return null;
+        Optional<MovementsEntity> byPublicId = movementsRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent()) return byPublicId.get();
+        else throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
     }
 
     @Override
     public void updateMovement(MovementsEntity entity, String publicId) {
+        Optional<MovementsEntity> byPublicId = movementsRepo.findByPublicId(publicId);
+        if (byPublicId.isEmpty()) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
 
+        MovementsEntity movementsEntity = byPublicId.get();
+        // Update fields if not null
+        if (entity.getInTime() != null) movementsEntity.setInTime(entity.getInTime());
+        if (entity.getOutTime() != null) movementsEntity.setOutTime(entity.getOutTime());
+        if (entity.getComment() != null) movementsEntity.setComment(entity.getComment());
+        if (entity.getStatus() != null) movementsEntity.setStatus(entity.getStatus());
+        if (entity.getLogTime() != null) movementsEntity.setLogTime(entity.getLogTime());
+        if (entity.getSupAppTime() != null) movementsEntity.setSupAppTime(entity.getSupAppTime());
+        if (entity.getManAppTime() != null) movementsEntity.setManAppTime(entity.getManAppTime());
+        if (entity.getHodAppTime() != null) movementsEntity.setHodAppTime(entity.getHodAppTime());
+        if (entity.getCategory() != null) movementsEntity.setCategory(entity.getCategory());
+        if (entity.getDestination() != null) movementsEntity.setDestination(entity.getDestination());
+        if (entity.getEmployeeId() != null) movementsEntity.setEmployeeId(entity.getEmployeeId());
+        if (entity.getReqDate() != null) movementsEntity.setReqDate(entity.getReqDate());
+        if (entity.getHod() != null) movementsEntity.setHod(entity.getHod());
+        if (entity.getSupervisor() != null) movementsEntity.setSupervisor(entity.getSupervisor());
+        if (entity.getAttSync() != null) movementsEntity.setAttSync(entity.getAttSync());
+        if (entity.getAbsentdate() != null) movementsEntity.setAbsentdate(entity.getAbsentdate());
+        if (entity.getLatedate() != null) movementsEntity.setLatedate(entity.getLatedate());
+        if (entity.getUnSuccessfulAttdate() != null)
+            movementsEntity.setUnSuccessfulAttdate(entity.getUnSuccessfulAttdate());
+        if (entity.getMovementType() != null) movementsEntity.setMovementType(entity.getMovementType());
+
+        // Save updated entity
+        movementsRepo.save(movementsEntity);
     }
 
     @Override
     public void deleteMovements(String publicId) {
-
+        MovementsEntity movement = getMovement(publicId);
+        movementsRepo.delete(movement);
     }
 
     @Override
     public void createNoPay(NoPayEntity entity) {
-
+        noPayRepo.save(entity);
     }
 
     @Override
     public List<NoPayEntity> getAllNoPayByUser(UserEntity user) {
-        return List.of();
+        List<NoPayEntity> byUser = noPayRepo.findByUser(user);
+        if (byUser.isEmpty()) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return byUser;
     }
 
     @Override
     public List<NoPayEntity> getAllNoPays() {
-        return List.of();
+        return (List<NoPayEntity>) noPayRepo.findAll();
     }
 
     @Override
     public NoPayEntity getNoPay(String publicId) {
-        return null;
-    }
-
-    @Override
-    public void updateNoPay(NoPayEntity entity, String publicId) {
-
+        Optional<NoPayEntity> byPublicId = noPayRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent()) {
+            return byPublicId.get();
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
     public void deleteNoPay(String publicId) {
-
+        Optional<NoPayEntity> byPublicId = noPayRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent()) {
+            noPayRepo.delete(byPublicId.get());
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
     public void saveLeave(LeaveEntity entity) {
-
+        leaveRepo.save(entity);
     }
 
     @Override
     public List<LeaveEntity> getAllLeaveByUserByPubicId(String user) {
-        return List.of();
+        UserEntity userEntity = userRepo.findByUserId(user);
+        if (userEntity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return leaveRepo.findByUser(userEntity);
     }
 
     @Override
     public List<LeaveEntity> getAllLeaveByUserByEmployeeId(String user) {
-        return List.of();
+        UserEntity userEntity = userRepo.findByEmployeeId(user);
+        if (userEntity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return leaveRepo.findByUser(userEntity);
     }
 
     @Override
     public List<LeaveEntity> getAllLeaves() {
-        return List.of();
+        return leaveRepo.findAll();
     }
 
     @Override
     public LeaveEntity getOneLeave(String publicId) {
-        return null;
+        Optional<LeaveEntity> byPublicId = leaveRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent()) {
+            return byPublicId.get();
+        } else
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
     }
 
     @Override
     public void deleteLeave(String publicId) {
-
+        Optional<LeaveEntity> byPublicId = leaveRepo.findByPublicId(publicId);
+        if (byPublicId.isPresent()) {
+            leaveRepo.delete(byPublicId.get());
+        } else
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
     }
 
     @Override
     public void saveUser(UserEntity entity) {
-
+        if (getUserByUserId(entity.getUserId()) != null)
+            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+        else if (getUserByEmployeeId(entity.getEmployeeId()) != null)
+            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+        userRepo.save(entity);
     }
 
     @Override
     public List<UserEntity> getAllUsers() {
-        return List.of();
+        return (List<UserEntity>) userRepo.findAll();
     }
 
-    @Override
-    public void updateUser(String user, UserEntity entity) {
-
-    }
 
     @Override
-    public UserEntity getUserByPublicId(String user) {
-        return null;
+    public UserEntity getUserByUserId(String user) {
+        UserEntity byEmployeeId = userRepo.findByUserId(user);
+        if (byEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return byEmployeeId;
     }
 
     @Override
     public UserEntity getUserByEmployeeId(String user) {
-        return null;
+        UserEntity byEmployeeId = userRepo.findByEmployeeId(user);
+        if (byEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return byEmployeeId;
     }
 
     @Override
-    public void deleteUser(String user) {
-
+    public void deleteUserByUserId(String user) {
+        UserEntity entity = userRepo.findByUserId(user);
+        if (entity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        else userRepo.delete(entity);
     }
 
     @Override
-    public void saveAttendanceType(String shortName) {
+    public void deleteUserByEmployeeID(String user) {
+        UserEntity entity = userRepo.findByEmployeeId(user);
+        if (entity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        else userRepo.delete(entity);
+    }
 
+    @Override
+    public void saveAttendanceType(String shortName, String Description) {
+        if (getAttendanceType(shortName) != null)
+            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+        AttendanceTypeEntity entity = new AttendanceTypeEntity();
+        entity.setShortName(shortName);
+        entity.setPublicId(utils.generateId(10));
+        entity.setDescription(Description);
+        attendanceTypeRepo.save(entity);
     }
 
     @Override
     public AttendanceTypeEntity getAttendanceType(String shortName) {
-        return null;
+        Optional<AttendanceTypeEntity> byShortName = attendanceTypeRepo.findByShortName(shortName);
+        if (byShortName.isPresent()) {
+            return byShortName.get();
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
-    public void updateAttendanceType(String publicId, String shortName) {
-
+    public void updateAttendanceType(String old_shortName, String shortName, String Description) {
+        Optional<AttendanceTypeEntity> byShortName = attendanceTypeRepo.findByShortName(old_shortName);
+        if (byShortName.isPresent()) {
+            AttendanceTypeEntity attendanceTypeEntity = byShortName.get();
+            attendanceTypeEntity.setShortName(shortName);
+            attendanceTypeEntity.setDescription(Description);
+            attendanceTypeRepo.save(attendanceTypeEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
-    public void deleteAttendanceType(String shortName, String publicId) {
-
+    public void deleteAttendanceType(String shortName) {
+        Optional<AttendanceTypeEntity> byShortName = attendanceTypeRepo.findByShortName(shortName);
+        if (byShortName.isPresent()) {
+            AttendanceTypeEntity attendanceTypeEntity = byShortName.get();
+            attendanceTypeRepo.delete(attendanceTypeEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
     public void saveLeaveCategory(String name) {
+        if (getLeaveCategory(name) != null)
+            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+
+        LeaveCategoryEntity leaveCategoryEntity = new LeaveCategoryEntity();
+        leaveCategoryEntity.setName(name);
+        leaveCategoryEntity.setPublicId(utils.generateId(10));
+
+        leaveCategoryRepo.save(leaveCategoryEntity);
 
     }
 
-    public LeaveCategoryEntity getLeaveCategory(String name, String publicId) {
+    public LeaveCategoryEntity getLeaveCategory(String name) {
         if (name != null) {
             Optional<LeaveCategoryEntity> result = leaveCategoryRepo.findByName(name);
             if (result.isPresent()) {
                 return result.get();
             }
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
         }
-
-        if (publicId != null) {
-            Optional<LeaveCategoryEntity> publicResult = leaveCategoryRepo.findByPublicId(publicId);
-            if (publicResult.isPresent()) {
-                return publicResult.get();
-            }
-        }
-
         return null; // Return null if no category is found
     }
 
     @Override
-    public void updateLeaveCategory(String old_name, String name, String publicId) {
-
+    public void updateLeaveCategory(String old_name, String name) {
+        Optional<LeaveCategoryEntity> result = leaveCategoryRepo.findByName(old_name);
+        if (result.isPresent()) {
+            LeaveCategoryEntity leaveCategoryEntity = result.get();
+            leaveCategoryEntity.setName(name);
+            leaveCategoryRepo.save(leaveCategoryEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
-    public void deleteLeaveCategory(String name, String publicId) {
-
+    public void deleteLeaveCategory(String name) {
+        Optional<LeaveCategoryEntity> result = leaveCategoryRepo.findByName(name);
+        if (result.isPresent()) {
+            LeaveCategoryEntity leaveCategoryEntity = result.get();
+            leaveCategoryRepo.delete(leaveCategoryEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
     public void saveLeaveType(String name) {
+        if (getLeaveType(name) != null)
+            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
 
+        LeaveTypeEntity leaveTypeEntity = new LeaveTypeEntity();
+        leaveTypeEntity.setName(name);
+        leaveTypeEntity.setPublicId(utils.generateId(10));
+
+        leaveTypeRepo.save(leaveTypeEntity);
     }
 
     @Override
-    public LeaveTypeEntity getLeaveType(String name, String publicId) {
+    public LeaveTypeEntity getLeaveType(String name) {
         if (name != null) {
             Optional<LeaveTypeEntity> result = leaveTypeRepo.findByName(name);
             if (result.isPresent()) {
                 return result.get();
             }
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
         }
-
-        if (publicId != null) {
-            Optional<LeaveTypeEntity> publicResult = leaveTypeRepo.findByPublicId(publicId);
-            if (publicResult.isPresent()) {
-                return publicResult.get();
-            }
-        }
-
         return null;
     }
 
     @Override
     public void updateLeaveType(String old_name, String name) {
-
+        Optional<LeaveTypeEntity> result = leaveTypeRepo.findByName(old_name);
+        if (result.isPresent()) {
+            LeaveTypeEntity leaveTypeEntity = result.get();
+            leaveTypeEntity.setName(name);
+            leaveTypeRepo.save(leaveTypeEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 
     @Override
-    public void deleteLeaveType(String name, String publicId) {
-
+    public void deleteLeaveType(String name) {
+        Optional<LeaveTypeEntity> result = leaveTypeRepo.findByName(name);
+        if (result.isPresent()) {
+            LeaveTypeEntity leaveTypeEntity = result.get();
+            leaveTypeRepo.delete(leaveTypeEntity);
+        } else {
+            throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
     }
 }
 

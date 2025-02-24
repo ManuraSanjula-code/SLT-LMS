@@ -18,8 +18,10 @@ public interface Check_Service {
     public void processMovementParticularIdsByHOD(String hodId, List<String> ids);
 
     public void main();
-    public void reportAttendance(InOutEntity inout,Boolean fullday, Boolean unAuthorized, Boolean late, Boolean late_cover);
+    public void reportAttendance(InOutEntity inout,Boolean fullday, Boolean unAuthorized, Boolean late, Boolean late_cover,Boolean half_day);
+    public void reportAbsent(List<InOutEntity> inout,List<UserEntity> absentEmployeesToday);
     public void reportAbsent(InOutEntity inout,List<UserEntity> absentEmployeesToday);
+    public void reportAbsent(List<UserEntity> absentEmployeesToday);
     public void prerequisite();
 
     public void requestALeave(LeaveReq req, String user,String employeeId);

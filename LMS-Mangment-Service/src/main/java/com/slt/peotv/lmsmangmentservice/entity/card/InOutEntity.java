@@ -29,8 +29,8 @@ public class InOutEntity {
 
     private Boolean InOut;
     private Boolean isMoaning;
-    private Boolean isEvening;
 
+    private Boolean isEvening;
     public long getId() {
         return id;
     }

@@ -65,6 +65,13 @@ public class LeaveEntity {
     private Boolean isHalfDay;
 
     private Boolean unSuccessful;
+    private Boolean isLate;
+    private Boolean isLateCover;
+
+    private Boolean isPending;
+    private Boolean isAccepted;
+    private Boolean notUsed;
+    private Boolean isShort_Leave;
 
     public Boolean getUnSuccessful() {
         return unSuccessful;
@@ -187,15 +194,31 @@ public class LeaveEntity {
         this.publicId = publicId;
     }
 
+    public Boolean getPending() {
+        return isPending;
+    }
+
+    public void setPending(Boolean pending) {
+        isPending = pending;
+    }
+
+    public Boolean getNotUsed() {
+        return notUsed;
+    }
+
+    public void setNotUsed(Boolean notUsed) {
+        this.notUsed = notUsed;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         LeaveEntity that = (LeaveEntity) o;
-        return id == that.id && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(submitDate, that.submitDate) && Objects.equals(fromDate, that.fromDate) && Objects.equals(toDate, that.toDate) && Objects.equals(leaveCategory, that.leaveCategory) && Objects.equals(leaveType, that.leaveType) && Objects.equals(isSupervisedApproved, that.isSupervisedApproved) && Objects.equals(isHODApproved, that.isHODApproved) && Objects.equals(isNoPay, that.isNoPay) && Objects.equals(numOfDays, that.numOfDays) && Objects.equals(description, that.description) && Objects.equals(isHalfDay, that.isHalfDay) && Objects.equals(unSuccessful, that.unSuccessful);
+        return id == that.id && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(submitDate, that.submitDate) && Objects.equals(fromDate, that.fromDate) && Objects.equals(toDate, that.toDate) && Objects.equals(leaveCategory, that.leaveCategory) && Objects.equals(leaveType, that.leaveType) && Objects.equals(isSupervisedApproved, that.isSupervisedApproved) && Objects.equals(isHODApproved, that.isHODApproved) && Objects.equals(isNoPay, that.isNoPay) && Objects.equals(numOfDays, that.numOfDays) && Objects.equals(description, that.description) && Objects.equals(isHalfDay, that.isHalfDay) && Objects.equals(unSuccessful, that.unSuccessful) && Objects.equals(isPending, that.isPending) && Objects.equals(notUsed, that.notUsed);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, publicId, user, submitDate, fromDate, toDate, leaveCategory, leaveType, isSupervisedApproved, isHODApproved, isNoPay, numOfDays, description, isHalfDay, unSuccessful);
+        return Objects.hash(id, publicId, user, submitDate, fromDate, toDate, leaveCategory, leaveType, isSupervisedApproved, isHODApproved, isNoPay, numOfDays, description, isHalfDay, unSuccessful, isPending, notUsed);
     }
 }

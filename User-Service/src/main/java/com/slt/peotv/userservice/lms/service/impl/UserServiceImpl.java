@@ -4,6 +4,8 @@ import com.slt.peotv.userservice.lms.entity.AddressEntity;
 import com.slt.peotv.userservice.lms.entity.PasswordResetTokenEntity;
 import com.slt.peotv.userservice.lms.entity.RoleEntity;
 import com.slt.peotv.userservice.lms.entity.UserEntity;
+import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
+import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import com.slt.peotv.userservice.lms.exceptions.UserServiceException;
 import com.slt.peotv.userservice.lms.repository.*;
 import com.slt.peotv.userservice.lms.security.UserPrincipal;
@@ -11,6 +13,7 @@ import com.slt.peotv.userservice.lms.service.UserService;
 import com.slt.peotv.userservice.lms.shared.Utils;
 import com.slt.peotv.userservice.lms.shared.dto.AddressDTO;
 import com.slt.peotv.userservice.lms.shared.dto.UserDto;
+import com.slt.peotv.userservice.lms.shared.model.request.ProfileReq;
 import com.slt.peotv.userservice.lms.shared.model.request.UserPasswordReset;
 import com.slt.peotv.userservice.lms.shared.model.response.ErrorMessages;
 import org.modelmapper.ModelMapper;
@@ -57,6 +60,12 @@ public class UserServiceImpl implements UserService {
 	AddressRepository addressRepository;
 
 	@Autowired
+	ProfilesRepo profilesRepo;
+
+	@Autowired
+	SectionRepo sectionRepo;
+
+	@Autowired
 	AuthorityRepository authorityRepo;
 	private final ModelMapper modelMapper = new ModelMapper();
 
@@ -75,6 +84,19 @@ public class UserServiceImpl implements UserService {
 			user.getAddresses().set(i, address);
 		}
 
+		/// ===============================================================
+
+		SectionEntity bySection = sectionRepo.findBySection(user.getSection());
+		ProfilesEntity byName = profilesRepo.findByName(user.getName());
+
+		List<SectionEntity> sectionEntities = new ArrayList<>();
+		List<ProfilesEntity> profilesEntities = new ArrayList<>();
+
+		profilesEntities.add(byName);
+		sectionEntities.add(bySection);
+
+		/// ==============================================================
+
 		//BeanUtils.copyProperties(user, userEntity);
 		UserEntity userEntity = modelMapper.map(user, UserEntity.class);
 
@@ -83,6 +105,12 @@ public class UserServiceImpl implements UserService {
 		userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		userEntity.setEmailVerificationToken(utils.generateEmailVerificationToken(publicUserId));
 
+		/// ========================================
+
+		userEntity.setSections(sectionEntities);
+		userEntity.setProfiles(profilesEntities);
+
+		/// =========================================
 		Collection<RoleEntity> roleEntities = new HashSet<>();
 		for(String role: user.getRoles()) {
 			RoleEntity roleEntity = roleRepository.findByName(role);
@@ -93,6 +121,25 @@ public class UserServiceImpl implements UserService {
 
 		userEntity.setRoles(roleEntities);
 		UserEntity storedUserDetails = userRepository.save(userEntity);
+
+		/// ======================================== ********************************************
+
+		Collection<UserEntity> usersInSection = bySection.getUsers();
+		Collection<UserEntity> usersInProfile = byName.getUsers();
+
+		if(usersInSection.isEmpty()) usersInSection = new ArrayList<>();
+		if(usersInProfile.isEmpty()) usersInProfile = new ArrayList<>();
+
+		usersInSection.add(userEntity);
+		usersInProfile.add(userEntity);
+
+		bySection.setUsers(usersInSection);
+		byName.setUsers(usersInSection);
+
+		profilesRepo.save(byName);
+		sectionRepo.save(bySection);
+
+		/// ======================================== ********************************************
 
 		// Send an email message to user to verify their email address
 		//amazonSES.verifyEmail(returnValue);
@@ -393,6 +440,37 @@ public class UserServiceImpl implements UserService {
 		}else{
 			return true;
 		}
+	}
+
+	@Override
+	public ProfilesEntity createProfiles(String name, ProfileReq req) {
+		if(getProfiles(name) != null) throw new UserServiceException(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+		ProfilesEntity map = modelMapper.map(req, ProfilesEntity.class);
+		map.setPublicId(utils.generateAddressId(30));
+		map.setName(name);
+		return profilesRepo.save(map);
+	}
+
+	@Override
+	public SectionEntity createSection(String name) {
+		if(getSection(name) != null) throw new UserServiceException(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
+		SectionEntity sectionEntity = new SectionEntity();
+		sectionEntity.setSection(name);
+		return sectionRepo.save(sectionEntity);
+	}
+
+	@Override
+	public SectionEntity getSection(String name) {
+		SectionEntity section = sectionRepo.findBySection(name);
+		if(section != null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+		return null;
+	}
+
+	@Override
+	public ProfilesEntity getProfiles(String name) {
+		ProfilesEntity profile = profilesRepo.findByName(name);
+		if(profile != null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+		return null;
 	}
 
 }

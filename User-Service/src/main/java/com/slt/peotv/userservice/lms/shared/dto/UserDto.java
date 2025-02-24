@@ -21,6 +21,24 @@ public class UserDto implements Serializable{
     private Collection<String> roles;
 	private Collection<String> Authorities;
 	private int defaultAddress;
+	private String name;
+	private String section;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getSection() {
+		return section;
+	}
+
+	public void setSection(String section) {
+		this.section = section;
+	}
 
 	public int getDefaultAddress() {
 		return defaultAddress;

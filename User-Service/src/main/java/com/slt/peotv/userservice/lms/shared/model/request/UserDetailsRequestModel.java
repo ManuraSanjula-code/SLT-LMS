@@ -1,8 +1,13 @@
 package com.slt.peotv.userservice.lms.shared.model.request;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Setter
+@Getter
 public class UserDetailsRequestModel {
 	
 	private String firstName;
@@ -10,8 +15,25 @@ public class UserDetailsRequestModel {
 	private String email;
 	private String password;
 	private List<AddressRequestModel> addresses = new ArrayList<>();
-
+	private String name;
+	private String section;
 	private int defaultAddress = 0;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getSection() {
+		return section;
+	}
+
+	public void setSection(String section) {
+		this.section = section;
+	}
 
 	public int getDefaultAddress() {
 		return defaultAddress;
@@ -20,7 +42,7 @@ public class UserDetailsRequestModel {
 	public void setDefaultAddress(int defaultAddress) {
 		this.defaultAddress = defaultAddress;
 	}
-	
+
 	public String getFirstName() {
 		return firstName;
 	}

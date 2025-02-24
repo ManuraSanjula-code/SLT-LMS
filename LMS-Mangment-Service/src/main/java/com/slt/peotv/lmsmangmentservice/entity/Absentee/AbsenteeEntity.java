@@ -50,7 +50,13 @@ public class AbsenteeEntity {
 
     @Column(name = "is_nopay", columnDefinition = "int(10) unsigned default '0'")
     private Integer isNoPay = 0;
+    private Boolean isPending;
+    private Boolean isAccepted;
 
+    private Boolean isLate;
+    private Boolean isAbsent;
+    private Boolean isUnSuccessfulAttdate;
+    private Boolean isLateCover;
     // Getters and Setters
 
     public long getId() {

@@ -1,5 +1,7 @@
 package com.slt.peotv.userservice.lms.contoller;
 
+import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
+import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import com.slt.peotv.userservice.lms.exceptions.UserServiceException;
 import com.slt.peotv.userservice.lms.exceptions.UserUnAuthorizedServiceException;
 import com.slt.peotv.userservice.lms.service.AddressService;
@@ -7,6 +9,7 @@ import com.slt.peotv.userservice.lms.service.UserService;
 import com.slt.peotv.userservice.lms.shared.Roles;
 import com.slt.peotv.userservice.lms.shared.dto.AddressDTO;
 import com.slt.peotv.userservice.lms.shared.dto.UserDto;
+import com.slt.peotv.userservice.lms.shared.model.request.ProfileReq;
 import com.slt.peotv.userservice.lms.shared.model.request.UserDetailsRequestModel;
 import com.slt.peotv.userservice.lms.shared.model.request.UserPasswordReset;
 import com.slt.peotv.userservice.lms.shared.model.response.*;
@@ -48,6 +51,26 @@ public class UserController {
 		UserDto userDto = userService.getUserByUserId(userid);
 		ModelMapper modelMapper = new ModelMapper();
 		return modelMapper.map(userDto, UserRest.class);
+	}
+
+	@PostMapping("/profiles/{name}")
+	public ProfilesEntity createProfiles(@PathVariable String name, @RequestBody ProfileReq req){
+		return userService.createProfiles(name, req);
+	}
+
+	@PostMapping("/section/{name}")
+	public SectionEntity createSection(@PathVariable String name){
+		return userService.createSection(name);
+	}
+
+	@PostMapping("/profiles/{name}")
+	public ProfilesEntity getProfiles(@PathVariable String name){
+		return userService.getProfiles(name);
+	}
+
+	@PostMapping("/section/{name}")
+	public SectionEntity getSection(@PathVariable String name){
+		return userService.getSection(name);
 	}
 
 	@GetMapping("/check-address/{userid}")

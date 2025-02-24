@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 import java.util.Date;
+import java.util.NoSuchElementException;
 
 @ControllerAdvice
 public class AppExceptionsHandler {
@@ -27,6 +28,14 @@ public class AppExceptionsHandler {
 		ErrorMessage errorMessage = new ErrorMessage(new Date(), ex.getMessage());
 
 		return new ResponseEntity<>(errorMessage, new HttpHeaders(), HttpStatus.UNAUTHORIZED);
+	}
+
+	@ExceptionHandler(value = {NoSuchElementException.class})
+	public ResponseEntity<Object> handleUserNoSuchElementException(NoSuchElementException ex, WebRequest request)
+	{
+		ErrorMessage errorMessage = new ErrorMessage(new Date(), ex.getMessage());
+
+		return new ResponseEntity<>(errorMessage, new HttpHeaders(), HttpStatus.NOT_FOUND);
 	}
 	
 	

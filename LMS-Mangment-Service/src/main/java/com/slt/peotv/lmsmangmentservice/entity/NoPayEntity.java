@@ -34,6 +34,11 @@ public class NoPayEntity {
     private Date acctualDate;
 
     private Boolean isHalfDay;
+    private Boolean unSuccessful;
+    private Boolean isLate;
+    private Boolean isLateCover;
+    private Boolean isAbsent;
+
 
     public long getId() {
         return id;

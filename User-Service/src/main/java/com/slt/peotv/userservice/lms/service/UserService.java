@@ -1,7 +1,11 @@
 package com.slt.peotv.userservice.lms.service;
 
+import com.slt.peotv.userservice.lms.entity.RoleEntity;
 import com.slt.peotv.userservice.lms.entity.UserEntity;
+import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
+import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import com.slt.peotv.userservice.lms.shared.dto.UserDto;
+import com.slt.peotv.userservice.lms.shared.model.request.ProfileReq;
 import com.slt.peotv.userservice.lms.shared.model.request.UserPasswordReset;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,4 +31,10 @@ public interface UserService extends UserDetailsService{
 	Resource getImage(String userId) throws MalformedURLException;
 	void resetPassWord(UserPasswordReset userPasswordReset);
 	boolean userAddress(String userId);
+
+	ProfilesEntity createProfiles(String name, ProfileReq req);
+	SectionEntity createSection(String name);
+
+	SectionEntity getSection(String name);
+	ProfilesEntity getProfiles(String name);
 }

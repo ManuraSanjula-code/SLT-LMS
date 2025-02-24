@@ -24,18 +24,6 @@ public class AttendanceEntity {
     private String publicId;
 
     @Column(nullable=false)
-    private Boolean isHalfDay; //❌❌
-
-    @Column(nullable=false)
-    private Boolean isShortLeave; //❌❌
-
-    @Column(nullable=false)
-    private Boolean isAbsent; //❌❌
-
-    @Column(nullable=false)
-    private Boolean isUnSuccessful; // ❌❌
-
-    @Column(nullable=false)
     private Date date;
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -55,6 +43,18 @@ public class AttendanceEntity {
 
     @Column(nullable=false)
     private Boolean lateCover; // ❌❌
+
+    @Column(nullable=false)
+    private Boolean isHalfDay; //❌❌
+
+    @Column(nullable=false)
+    private Boolean isShortLeave; //❌❌
+
+    @Column(nullable=false)
+    private Boolean isAbsent; //❌❌
+
+    @Column(nullable=false)
+    private Boolean isUnSuccessful; // ❌❌
 
     public Time getLeft_time() {
         return left_time;
@@ -166,17 +166,5 @@ public class AttendanceEntity {
 
     public void setShortLeave(Boolean shortLeave) {
         isShortLeave = shortLeave;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        AttendanceEntity that = (AttendanceEntity) o;
-        return id == that.id && Objects.equals(publicId, that.publicId) && Objects.equals(isHalfDay, that.isHalfDay) && Objects.equals(isShortLeave, that.isShortLeave) && Objects.equals(isAbsent, that.isAbsent) && Objects.equals(isUnSuccessful, that.isUnSuccessful) && Objects.equals(date, that.date) && Objects.equals(user, that.user) && Objects.equals(isFullDay, that.isFullDay) && Objects.equals(arrival_date, that.arrival_date) && Objects.equals(arrival_time, that.arrival_time) && Objects.equals(left_time, that.left_time) && Objects.equals(isLate, that.isLate) && Objects.equals(lateCover, that.lateCover);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, publicId, isHalfDay, isShortLeave, isAbsent, isUnSuccessful, date, user, isFullDay, arrival_date, arrival_time, left_time, isLate, lateCover);
     }
 }

@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AuthorityRepo extends CrudRepository<AuthorityEntity, Long> {
+    AuthorityEntity findByName(String name);
 }
 

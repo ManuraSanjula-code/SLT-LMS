@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface InOutRepo extends CrudRepository<InOutEntity, Long> {
@@ -57,6 +58,9 @@ public interface InOutRepo extends CrudRepository<InOutEntity, Long> {
     List<UserEntity> findAbsentEmployeesToday();
 
 
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = CURRENT_DATE - 1")
+    List<InOutEntity> findYesterdayInOutRecords();
+
     @Query("SELECT u FROM UserEntity u WHERE u.employeeId NOT IN (SELECT io.employeeID FROM InOutEntity io WHERE DATE(io.pushInOut) = CURRENT_DATE - INTERVAL 1 DAY)")
     List<UserEntity> findAbsentEmployeesYesterday();
 
@@ -89,5 +93,8 @@ public interface InOutRepo extends CrudRepository<InOutEntity, Long> {
 
     @Query("SELECT COUNT(i) > 0 FROM InOutEntity i WHERE i.employeeID = :employeeID AND i.userId = :userId AND DATE(i.pushInOut) = DATE(:yesterday) AND i.time > '08:30:00' AND i.time <= '09:00:00' AND NOT i.InOut")
     boolean didEmployeeNotCoverLateTime(@Param("employeeID") String employeeID, @Param("userId") String userId, @Param("yesterday") Date yesterday);
+
+    Optional<InOutEntity> findInOutByUserAndDate(@Param("userId") String userId, @Param("date") Date date);
+
 }
 

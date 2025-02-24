@@ -79,9 +79,21 @@ public class MovementsEntity {
     @Column(name = "ATT_SYNC")
     private Integer attSync = 0;
 
+    private Date dueDate;
+
     private Date absentdate;
     private Date latedate;
     private Date unSuccessfulAttdate; //unSuccessful attendance
+
+    private Boolean isPending;
+    private Boolean isAccepted;
+    private Boolean isExpired;
+
+    private Boolean isHalfDay;
+    private Boolean isLate;
+    private Boolean isAbsent;
+    private Boolean isUnSuccessfulAttdate;
+    private Boolean isLateCover;
 
     public Date getUnSuccessfulAttdate() {
         return unSuccessfulAttdate;
@@ -262,15 +274,39 @@ public class MovementsEntity {
         this.attSync = attSync;
     }
 
+    public Date getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(Date dueDate) {
+        this.dueDate = dueDate;
+    }
+
+    public Boolean getExpired() {
+        return isExpired;
+    }
+
+    public void setExpired(Boolean expired) {
+        isExpired = expired;
+    }
+
+    public Boolean getPending() {
+        return isPending;
+    }
+
+    public void setPending(Boolean pending) {
+        isPending = pending;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         MovementsEntity that = (MovementsEntity) o;
-        return Objects.equals(id, that.id) && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(inTime, that.inTime) && Objects.equals(outTime, that.outTime) && Objects.equals(comment, that.comment) && Objects.equals(status, that.status) && Objects.equals(logTime, that.logTime) && Objects.equals(supAppTime, that.supAppTime) && Objects.equals(manAppTime, that.manAppTime) && Objects.equals(hodAppTime, that.hodAppTime) && Objects.equals(category, that.category) && Objects.equals(destination, that.destination) && Objects.equals(employeeId, that.employeeId) && Objects.equals(reqDate, that.reqDate) && Objects.equals(hod, that.hod) && Objects.equals(supervisor, that.supervisor) && Objects.equals(attSync, that.attSync) && Objects.equals(absentdate, that.absentdate) && Objects.equals(latedate, that.latedate) && Objects.equals(unSuccessfulAttdate, that.unSuccessfulAttdate) && movementType == that.movementType;
+        return Objects.equals(id, that.id) && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(inTime, that.inTime) && Objects.equals(outTime, that.outTime) && Objects.equals(comment, that.comment) && Objects.equals(status, that.status) && Objects.equals(logTime, that.logTime) && Objects.equals(supAppTime, that.supAppTime) && Objects.equals(manAppTime, that.manAppTime) && Objects.equals(hodAppTime, that.hodAppTime) && Objects.equals(category, that.category) && Objects.equals(destination, that.destination) && Objects.equals(employeeId, that.employeeId) && Objects.equals(reqDate, that.reqDate) && Objects.equals(hod, that.hod) && Objects.equals(supervisor, that.supervisor) && Objects.equals(attSync, that.attSync) && Objects.equals(dueDate, that.dueDate) && Objects.equals(isExpired, that.isExpired) && Objects.equals(absentdate, that.absentdate) && Objects.equals(latedate, that.latedate) && Objects.equals(unSuccessfulAttdate, that.unSuccessfulAttdate) && Objects.equals(isPending, that.isPending) && movementType == that.movementType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, publicId, user, inTime, outTime, comment, status, logTime, supAppTime, manAppTime, hodAppTime, category, destination, employeeId, reqDate, hod, supervisor, attSync, absentdate, latedate, unSuccessfulAttdate, movementType);
+        return Objects.hash(id, publicId, user, inTime, outTime, comment, status, logTime, supAppTime, manAppTime, hodAppTime, category, destination, employeeId, reqDate, hod, supervisor, attSync, dueDate, isExpired, absentdate, latedate, unSuccessfulAttdate, isPending, movementType);
     }
 }
