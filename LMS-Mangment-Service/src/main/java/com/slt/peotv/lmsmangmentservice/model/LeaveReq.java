@@ -10,13 +10,23 @@ public class LeaveReq {
     private String description;
     private Boolean isHalfDay;
     private Long numOfDays;
+    private Date happenDate;
+    private Boolean isUnauthorized;
 
-    public Long getNumOfDays() {
-        return numOfDays;
+    public Boolean getUnauthorized() {
+        return isUnauthorized;
     }
 
-    public void setNumOfDays(Long numOfDays) {
-        this.numOfDays = numOfDays;
+    public void setUnauthorized(Boolean unauthorized) {
+        isUnauthorized = unauthorized;
+    }
+
+    public Date getHappenDate() {
+        return happenDate;
+    }
+
+    public void setHappenDate(Date happenDate) {
+        this.happenDate = happenDate;
     }
 
     public Date getFromDate() {
@@ -65,5 +75,13 @@ public class LeaveReq {
 
     public void setHalfDay(Boolean halfDay) {
         isHalfDay = halfDay;
+    }
+
+    public Long getNumOfDays() {
+        return numOfDays;
+    }
+
+    public void setNumOfDays(Long numOfDays) {
+        this.numOfDays = numOfDays;
     }
 }

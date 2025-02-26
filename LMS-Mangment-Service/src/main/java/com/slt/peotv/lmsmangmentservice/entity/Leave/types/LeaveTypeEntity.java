@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.Objects;
 
 @Entity
@@ -17,10 +16,8 @@ public class LeaveTypeEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(unique = true, nullable = false)
     private String name; // CASUAL, SICK, etc.
 
-    @Column(nullable=false)
     private String publicId;
 
     public Long getId() {
@@ -58,5 +55,4 @@ public class LeaveTypeEntity {
     public int hashCode() {
         return Objects.hash(id, name, publicId);
     }
-
 }

@@ -1,6 +1,6 @@
 package com.slt.peotv.lmsmangmentservice.repository;
 
-import com.slt.peotv.lmsmangmentservice.entity.MovementsEntity;
+import com.slt.peotv.lmsmangmentservice.entity.Movement.MovementsEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;

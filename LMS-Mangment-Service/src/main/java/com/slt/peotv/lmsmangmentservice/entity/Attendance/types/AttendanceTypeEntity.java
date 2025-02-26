@@ -18,38 +18,13 @@ public class AttendanceTypeEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
-    @Column(nullable=false)
     private String publicId;
-
-    @Column(nullable=false)
     private String shortName;
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        AttendanceTypeEntity that = (AttendanceTypeEntity) o;
-        return id == that.id && Objects.equals(publicId, that.publicId) && Objects.equals(shortName, that.shortName) && Objects.equals(Description, that.Description) && Objects.equals(attendance, that.attendance);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, publicId, shortName, Description, attendance);
-    }
-
-    @Column(nullable=false)
     private String Description;
 
     @ManyToOne
     @JoinColumn(name = "attendance_id", nullable = false)
     private AttendanceEntity attendance;
-
-    public AttendanceEntity getAttendance() {
-        return attendance;
-    }
-
-    public void setAttendance(AttendanceEntity attendance) {
-        this.attendance = attendance;
-    }
 
     public long getId() {
         return id;
@@ -57,6 +32,14 @@ public class AttendanceTypeEntity {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public String getShortName() {
@@ -75,11 +58,12 @@ public class AttendanceTypeEntity {
         Description = description;
     }
 
-    public String getPublicId() {
-        return publicId;
+    public AttendanceEntity getAttendance() {
+        return attendance;
     }
 
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
+    public void setAttendance(AttendanceEntity attendance) {
+        this.attendance = attendance;
     }
+
 }

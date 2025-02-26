@@ -2,12 +2,10 @@ package com.slt.peotv.lmsmangmentservice.entity.Leave.category;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
-
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.Objects;
 
 @Entity
@@ -20,15 +18,14 @@ public class UserLeaveTypeRemaining {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(nullable=false)
     private String publicId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @ManyToOne
-    @JoinColumn(name = "leave_type_id", nullable = false)
+    @JoinColumn(name = "leave_type_id")
     private LeaveTypeEntity leaveType;
 
     private Integer remainingLeaves;
@@ -39,6 +36,14 @@ public class UserLeaveTypeRemaining {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public UserEntity getUser() {
@@ -63,14 +68,6 @@ public class UserLeaveTypeRemaining {
 
     public void setRemainingLeaves(Integer remainingLeaves) {
         this.remainingLeaves = remainingLeaves;
-    }
-
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
     }
 
     @Override

@@ -1,33 +1,30 @@
 package com.slt.peotv.lmsmangmentservice.entity.archive.types;
 
-import com.slt.peotv.lmsmangmentservice.entity.archive.AttendanceEntity_;
+import com.slt.peotv.lmsmangmentservice.entity.Attendance.AttendanceEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "attendance_type")
-public class AttendanceTypeEntity {
+@Table(name = "attendance_type_")
+public class AttendanceTypeEntity_ {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
-    @Column(nullable=false)
     private String publicId;
 
-    @Column(nullable=false)
     private String shortName;
 
-    @Column(nullable=false)
     private String Description;
 
     @ManyToOne
     @JoinColumn(name = "attendance_id", nullable = false)
-    private AttendanceEntity_ attendance;
+    private AttendanceEntity attendance;
 
-    public AttendanceEntity_ getAttendance() {
+    public AttendanceEntity getAttendance() {
         return attendance;
     }
 
-    public void setAttendance(AttendanceEntity_ attendance) {
+    public void setAttendance(AttendanceEntity attendance) {
         this.attendance = attendance;
     }
 

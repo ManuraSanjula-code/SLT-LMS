@@ -29,8 +29,8 @@ public class InOutEntity {
 
     private Boolean InOut;
     private Boolean isMoaning;
-
     private Boolean isEvening;
+
     public long getId() {
         return id;
     }
@@ -67,16 +67,16 @@ public class InOutEntity {
         return punchInMoa;
     }
 
-    public void setPunchInMoa(Date pushInMoa) {
-        this.punchInMoa = pushInMoa;
+    public void setPunchInMoa(Date punchInMoa) {
+        this.punchInMoa = punchInMoa;
     }
 
     public Date getPunchInEv() {
         return punchInEv;
     }
 
-    public void setPunchInEv(Date pushInEv) {
-        this.punchInEv = pushInEv;
+    public void setPunchInEv(Date punchInEv) {
+        this.punchInEv = punchInEv;
     }
 
     public Time getTimeMoa() {

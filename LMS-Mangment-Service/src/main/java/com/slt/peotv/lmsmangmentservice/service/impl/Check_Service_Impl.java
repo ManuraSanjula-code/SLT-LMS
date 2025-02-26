@@ -3,24 +3,21 @@ package com.slt.peotv.lmsmangmentservice.service.impl;
 import com.slt.peotv.lmsmangmentservice.entity.Absentee.AbsenteeEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Attendance.AttendanceEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveCategoryRemainingEntity;
-import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveCategoryTotalEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveTypeRemaining;
-import com.slt.peotv.lmsmangmentservice.entity.archive.AttendanceEntity_;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.LeaveEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
-import com.slt.peotv.lmsmangmentservice.entity.MovementsEntity;
-import com.slt.peotv.lmsmangmentservice.entity.NoPayEntity;
+import com.slt.peotv.lmsmangmentservice.entity.Movement.MovementsEntity;
+import com.slt.peotv.lmsmangmentservice.entity.NoPay.NoPayEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.basic.RoleEntity;
-import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity_;
 import com.slt.peotv.lmsmangmentservice.exceptions.ErrorMessages;
+import com.slt.peotv.lmsmangmentservice.model.AbsenteeReq;
 import com.slt.peotv.lmsmangmentservice.model.LeaveReq;
 import com.slt.peotv.lmsmangmentservice.model.MovementReq;
 import com.slt.peotv.lmsmangmentservice.model.types.MovementType;
 import com.slt.peotv.lmsmangmentservice.repository.*;
 import com.slt.peotv.lmsmangmentservice.repository.archive.AttendanceRepo_;
-import com.slt.peotv.lmsmangmentservice.repository.archive.InOutRepo_Archived;
 import com.slt.peotv.lmsmangmentservice.service.Check_Service;
 import com.slt.peotv.lmsmangmentservice.service.LMS_Service;
 import com.slt.peotv.lmsmangmentservice.service.ServiceEvent;
@@ -29,7 +26,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -41,7 +37,6 @@ import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity;
 
 @Service
 public class Check_Service_Impl implements Check_Service {
-
 
     @Service
     public class Helper {
@@ -60,6 +55,11 @@ public class Check_Service_Impl implements Check_Service {
 
         public void handleLateAndUnsuccessful(UserEntity user, AttendanceEntity attendanceEntity) {
 
+            if (attendanceEntity != null)
+                return;
+
+            attendanceEntity.setIsUnSuccessful(true);
+
             UserLeaveCategoryRemainingEntity remaining_short_Leaves =
                     serviceEvent.getUserLeaveCategoryRemaining("SHORT_LEAVE", user.getUserId(), user.getEmployeeId());
 
@@ -67,114 +67,57 @@ public class Check_Service_Impl implements Check_Service {
                     serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
 
             if (remaining_short_Leaves.getRemainingLeaves() < 1) { /// check are there any short leaves
-            /// No short leaves
+                /// No short leaves
+
+                attendanceEntity.setHalfDay(true);
+                attendanceEntity.setIssues(true);
 
                 if (remaining_half_Day.getRemainingLeaves() < 1) { /// check are there any half days
-                /// No half days
-                    saveNoPayEntity(user,true,false,false,false, false);
+                    /// No half days
+
+                    attendanceEntity.setIssue_description("GOING HALF DAY BUT REMAINING HALF DAY IS 0 SO GOING NO-PAY");
+
+                    saveNoPayEntity(user, attendanceEntity, attendanceEntity.getIsHalfDay(),
+                            attendanceEntity.getIsUnSuccessful(), attendanceEntity.getIsLate(),
+                            attendanceEntity.getLateCover(), attendanceEntity.getAbsent(), attendanceEntity.getDate());
                 } else {
 
-                    /// there are half days
-                    remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
+                    attendanceEntity.setIssue_description("GOING HALF DAY BEFORE PASS THE DUE DATE PLEASE RESOLVE IT");
+                    attendanceEntity.setDueDateForUA(getDueDate());
 
-                    userRepo.save(user);
-                    if(attendanceEntity != null)
-                     attendanceRepo.save(attendanceEntity);
-                    userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
+                    /// there are half days
+                    /// there are half days consider as UnSuccessful Leave ======================
+
+                    AbsenteeReq req = new AbsenteeReq();
+                    req.setEmployeeId(user.getEmployeeId());
+                    req.setUserId(user.getUserId());
+                    req.setIsHalfDay(true);
+                    req.setHappenDate(attendanceEntity.getDate());
+                    req.setComment("GOING HALF DAY WITH-OUT NOTIFYING");
+
+                    reportAbsent(req, true);
+                    reportAttendance(attendanceEntity, false, false, true, false, false, true);
                 }
 
             } else {
                 /// there are short leaves
 
+                attendanceEntity.setShortLeave(true);
+                attendanceEntity.setIssues(true);
+
                 remaining_short_Leaves.setRemainingLeaves(remaining_short_Leaves.getRemainingLeaves() - 1);
                 userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
                 userRepo.save(user);
-                if(attendanceEntity != null)
-                    attendanceRepo.save(attendanceEntity);
             }
+
+            assert attendanceEntity != null;
+            attendanceRepo.save(attendanceEntity);
         }
     }
-    /// Process Leaves and request leaves ✅✅ ❌
-    /// Process movement and request movement ❌✅
-    /// Checking user have enough leaves ✅❌
-    /// User NoPay System  ❌
-
-    ///  What are the types of movements --- inform of a unauthorized swapping (unSuccessful attendance), no enough half days, or leaves, or shortLeaves,
-    /// absent and no leaves , if employee is late forgot to do the late work ❌
-
-    /// While request leaves make sure check are there any remaining leaves
-    /// if employee is late 2 time consider as short-leave || make sure check that
-
-    /// if employee is late 3rd time consider as half-day and employee keep doing this it will end all the half days and ---
-    ///  ----- finally employee going nopay || make sure check that
-
-    /// and employee absent because of certain reasons that will important but forgot to make leave he/she can make movement
-    /// by default if employee forgot to make leave he/she can make movement that tell the reason other wise it will cut of your extra leaves and extra leaves
-    /// is over you will employee to no-pay || same reason apply to late comers ( also system give certain time give you to make movement)
-    /// some reason server is down it can't be absent
-    ///
-    /// ‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️ ---- if our server not store the records it will not sider as absesnt and
-    ///
-    /// 🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 before main process start happen compare with slt main data with local data
-    ///                                                                   determin the employee attedence
-    ///
-    /// How Movement Happens ---- (first system checking are there any leaves avalaible or not)
-    ///                          1). if employee absent and also no enough half days, or leaves, or shortLeaves (he/she can req movement) -- no pay
-    ///                          2). if employee is late to work (he/she can make a movement) -- no pay
-    ///                          3). if employee make forgot to swipe or unauthorized swapping (unSuccessful attendance) -- he/she can make movement
-    ///
-    /// Movement Process --------
-    ///                          1). if employee absent using making movement she/he preventing any issue
-    ///                                 -- issue : if employee absent due to very valid reason it will not consider and employee leaves would not change
-    ///                                          !! how but there is no leaves but reason is valid
-    ///
-    ///                          2). if employee is late to work using making movement she/he preventing any issue
-    ///                                 -- issue : employee 2 day late it will marks as short leave but if employee again late it will consider as half day
-    ///                                            making movement employee can tell the reason and get approval and work normally and employee short leave
-    ///                                            half day remain the same
-    ///
-    ///                          3). if employee make forgot to swipe or unauthorized swapping he/she can make movement and waier otherwise it will going no-pay
-    ///                                 -- conditions : employee has to make a movement certain time duration
-    ///
-    ///                         noted : employee can make a movement with in certain time duration other wise !! specially unauthorized people if they don't
-    ///                                 it will mark as no-pay
-    ///
-    /// Movement process not accepted -----
-    ///             1). if employee absent using making movement she/he preventing any issue but not accepted
-    ///                  -- there are two raise conditions -> employee have enough leaves it will cut off from leaves
-    ///                                                    -> no leaves it will consider as no-pay
-    ///
-    ///             2). if employee is late to work using making movement
-    ///                  -- there four raise conditions -> 1st and 2nd days consider as short-leave and 3rd day consider as half day
-    ///                                                  -> if there is no short leave
-    ///                                                  -> if there are no half days
-    ///                                                  -> if there no short leaves and half days --- it will going nopay
-    ///
-    ///             3). if employee make forgot to swipe or unauthorized swapping --> it will directly consider as no pay or $$ make leave <--|
-    ///                    !! there is boolean call unSuccessful to indicate this !! ------------------------------------------------------|
-    ///                     and same rules applies
-    ///
-    /// ---- when HOD or supervice approves leave or movement supervice or HOD(he/she) need see all the leaves and remaining leaves
-    ///
-    ///
-    /// if employee request a leave and get accepted --
-    ///                     in that day system need to dected the employee and high-ligth she/he already requst a leave but she/he came within day it will
-    ///                     not consider as a leave 😂 but person late (it will consider as shortleave if employee repate another one day again system detec as
-    ///                     short leave but in third day system consider as half day --- employee can waier by making movemnet)
-    ///
-    ///
-    /// what if employee late going home :
-    ///
-    /// what if employee decied to take the lunch going to outside the bulding employee i need to punch the card, once he/she arrived again she/he punch the card
-    ///
-    /// what if there is no leaves but it's important (make a specail function to requst movement like that )
-    /// ----------------------------------------------------  Calculate the final outcome ---------------------------------------------------------------------
-
     @Autowired
     private AttendanceRepo_ attendanceRepo_;
-
     @Autowired
-    private AttendanceRepo attendanceRepo;
+    private static AttendanceRepo attendanceRepo;
     @Autowired
     private LMS_Service lmsService;
     @Autowired
@@ -199,6 +142,7 @@ public class Check_Service_Impl implements Check_Service {
     private Helper helper;
     @Autowired
     private LeaveRepo leaveRepo;
+
     private final ModelMapper modelMapper = new ModelMapper();
 
     public static boolean hasRole(Collection<RoleEntity> roles, String rol) {
@@ -210,7 +154,8 @@ public class Check_Service_Impl implements Check_Service {
     }
 
     @Override
-    public void requestMovement(MovementReq req) {
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    public void requestMovement(MovementReq req, Date dueDate) { /// ✅
 
         UserEntity u = lmsService.getUserByUserId(
                 (req.getUserId() != null && !req.getUserId().isEmpty()) ? req.getUserId() : req.getEmployeeId()
@@ -255,25 +200,55 @@ public class Check_Service_Impl implements Check_Service {
         movementsEntity.setReqDate(new Date());
         movementsEntity.setLogTime(new Date());
 
+        movementsEntity.setHalfDay(req.getHalfDay());
         movementsEntity.setIsAbsent(req.getAbsent());
         movementsEntity.setIsLate(req.getLate());
         movementsEntity.setIsLateCover(req.getLateCover());
+
         movementsEntity.setIsUnSuccessfulAttdate(req.getIsUnSuccessfulAttdate());
+        movementsEntity.setHappenDate(req.getHappenDate());
+        movementsEntity.setUnSuccessfulAttdate(req.getUnSuccessfulAttdate());
+        movementsEntity.setHalfDay(req.getHalfDay());
+        movementsEntity.setDueDate(dueDate);
+
+        movementsEntity.setHalfDay(req.getHalfDay());
+        movementsEntity.setLateCover(req.getLateCover());
         movementsEntity.setIsPending(false);
         movementsEntity.setIsAccepted(false);
         movementsEntity.setIsExpired(false);
+        movementsEntity.setLateCover(req.getLateCover());
+
         lmsService.createMovements(movementsEntity);
 
     }
 
     /// Supervicer and HOD can see employee all the remain leaves and absents and nopays and movements 🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔🔔
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
     public void approvedMove(MovementsEntity entity) {
         UserEntity user = lmsService.getUserByEmployeeId(entity.getUser().getEmployeeId());
         MovementType movementType = entity.getMovementType();
 
         /// When Adding a due date make sure put extra 1 month 2 weeks
+        List<UserLeaveTypeRemaining> userLeaveTypeRemainingRepo = serviceEvent.getUserLeaveTypeRemaining(entity.getUser());
+
+        List<UserLeaveTypeRemaining> filteredList = userLeaveTypeRemainingRepo.stream()
+                .filter(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1)
+                .collect(Collectors.toList());
+
+        boolean allMatch = userLeaveTypeRemainingRepo.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
+        if (allMatch) return;
+
 
         if (movementType == MovementType.ABSENT) {
+
+            /// ============================================
+
+            Date movementDate = entity.getHappenDate();
+            /// Get the no pays related to that date also absent is true
+            /// and roll back the one of the leaves
+
+            /// ============================================
+
             ///  what is type employee should have if employee is absent
             ///  and check that leave type and check how many remain are there
 
@@ -284,6 +259,15 @@ public class Check_Service_Impl implements Check_Service {
             ///  there is remaining leaves --> reason is not valid rollback data not changing (becuase system automatically put absent) (reject)
 
         } else if (movementType == MovementType.LATEWORK) {
+
+            /// ============================================
+
+            Date movementDate = entity.getHappenDate();
+            /// Get the no pays related to that date also absent is true
+            /// and roll back the one of the leaves
+
+            /// ============================================
+
             ///  check are there any short leaves and half days
             ///  2 raise conditions--> if there is no shot-leaves and but there are half days
             ///                     --> if there is shot-leaves and but there are no half days  (stupid)
@@ -301,7 +285,22 @@ public class Check_Service_Impl implements Check_Service {
             ///                           --> but no half days and no short leaves -- consider as nopay
 
         } else if (movementType == MovementType.UNSUCCESSFUL) {
+            /// ============================================
 
+            Date movementDate = entity.getHappenDate();
+            /// Get the no pays related to that date also absent is true
+            /// and roll back the one of the leaves
+
+            /// ============================================
+
+        } else if (movementType == MovementType.LATE) {
+            /// ============================================
+
+            Date movementDate = entity.getHappenDate();
+            /// Get the no pays related to that date also absent is true
+            /// and roll back the one of the leaves
+
+            /// ============================================
         }
     }
 
@@ -309,27 +308,22 @@ public class Check_Service_Impl implements Check_Service {
     public void processMovementBySup(String superId, String moveId) {
 
     }
-
     @Override
     public void processMovementByHOD(String hodId, String moveId) {
 
     }
-
     @Override
     public void processMovementParticularUserBySup(String superId, String userId) {
 
     }
-
     @Override
     public void processMovementParticularUserByHOD(String hodId, String userId) {
 
     }
-
     @Override
     public void processMovementParticularIdsBySup(String superId, List<String> ids) {
 
     }
-
     @Override
     public void processMovementParticularIdsByHOD(String hodId, List<String> ids) {
 
@@ -340,144 +334,282 @@ public class Check_Service_Impl implements Check_Service {
         return Date.from(yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
-    public static NoPayEntity saveNoPayEntity(UserEntity user, Boolean isHalfDay, Boolean unSuccessful, Boolean isLate, Boolean isLateCover,Boolean isAbsent) {
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    public static NoPayEntity saveNoPayEntity(UserEntity user, AttendanceEntity attendanceEntity, Boolean isHalfDay, Boolean unSuccessful, Boolean isLate, Boolean isLateCover, Boolean isAbsent,
+                                              Date accualDate) {
+        if (attendanceEntity == null) {
+            attendanceEntity = new AttendanceEntity();
+
+            attendanceEntity.setPublicId(utils.generateId(10));
+            attendanceEntity.setDate(getYesterdayDate());
+            attendanceEntity.setHalfDay(isHalfDay);
+            attendanceEntity.setUnSuccessful(unSuccessful);
+            attendanceEntity.setLateCover(isLate);
+            attendanceEntity.setLateCover(isLateCover);
+            attendanceEntity.setAbsent(isAbsent);
+
+            attendanceRepo.save(attendanceEntity);
+
+        }
         NoPayEntity nopayEntity = new NoPayEntity();
+
         nopayEntity.setUser(user);
         nopayEntity.setPublicId(utils.generateId(10));
-        nopayEntity.setAcctual_date(new Date());
+        nopayEntity.setAcctualDate(accualDate == null ? new Date() : accualDate);
         nopayEntity.setSubmissionDate(new Date());
+        nopayEntity.setSubmissionDate(new Date());
+
         nopayEntity.setIsHalfDay(isHalfDay);
         nopayEntity.setUnSuccessful(unSuccessful);
         nopayEntity.setIsLate(isLate);
         nopayEntity.setIsLateCover(isLateCover);
-        nopayEntity.setIsLateCover(isLateCover);
         nopayEntity.setIsAbsent(isAbsent);
+
+        nopayEntity.setHappenDate(accualDate);
+
+        StringBuilder description = new StringBuilder();
+
+        if (isAbsent) description.append("Absent on ").append(accualDate).append(". ");
+        if (isHalfDay) description.append("Half-day on ").append(accualDate).append(". ");
+        if (unSuccessful) description.append("Unsuccessful attendance on ").append(accualDate).append(". ");
+        if (isLate) description.append("Late on ").append(accualDate).append(". ");
+        if (isLateCover) description.append("Late cover on ").append(accualDate).append(". ");
+
+        String finalDescription = description.toString().trim();
+        nopayEntity.setComment(finalDescription);
+        nopayEntity.setAttendance(attendanceEntity);
+
+        attendanceEntity.setIsNoPay(true);
+        attendanceRepo.save(attendanceEntity);
+
         nopayEntity = noPayRepo.save(nopayEntity);
 
         return nopayEntity;
     }
+
+    public static Date getDueDate() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MONTH, 1);  // Add 1 month
+        calendar.add(Calendar.WEEK_OF_YEAR, 1); // Add 1 extra week
+        return calendar.getTime(); // Return as Date object
+    }
+
     @Override
     public void main() {
 
+        /// CHECK ALL THE UNSUCCESSFUL AND UNAUTHORIZED ATTENDANCE PASS THE DUE DATE OR NOT ***********************************************
+        /// ‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️
 
-        /// Get All Attendance -----------------------------------------------------------------
+        /// ************************************************** TO ALL UNAUTHORIZED -- START ********************************************************
+        ///  ==== but there is no leave by default system will sign no-pays ======
 
-        List<AttendanceEntity> yesterdayAttendance = attendanceRepo.findYesterdayAttendance();
+        /// And check are there any punches during 1pm or 2pm or 10am --- in that case ABSENT under half-day (if half day time fulfilled) were create to the employee
+        ///         also Attendance under half-day (if half day time fulfilled)
+        ///         --- record were crated under unAuthorized employee need to might resolve using a leave or make movement
+        ///         /// employee can resolve these absent record using a leave
+        ///         /// and after that ABSENT ENTITY mark as archives and in the description set why is archive ??? and in attendance is_resolve variable became true =====
+        ///         /// also employee make a movement under category of unAuthorized
 
-        yesterdayAttendance.forEach(attendanceEntity -> {
+        /// ************************************************** TO ALL UNAUTHORIZED -- END ********************************************************
 
-            Boolean isLate = attendanceEntity.getIsLate();
-            Boolean lateCover = attendanceEntity.getLateCover();
-            Boolean unSuccessful = attendanceEntity.getUnSuccessful();
-            Boolean isHalfDay = attendanceEntity.getIsHalfDay();
-
-            // Convert Time objects to milliseconds
-            long diffInMillis = attendanceEntity.getArrival_time().getTime() - attendanceEntity.getLeft_time().getTime();
-
-            // 4 hours in milliseconds
-            long fourHoursInMillis = 4 * 60 * 60 * 1000;
-
-            if (diffInMillis == fourHoursInMillis) {
-                System.out.println("The time difference is exactly 4 hours.");
-                attendanceEntity.setHalfDay(true);
-                isHalfDay = true;
-            } else {
-                System.out.println("The time difference is NOT exactly 4 hours.");
-            }
-
-            UserEntity user = userRepo.findByEmployeeId(attendanceEntity.getUser().getEmployeeId());
-            if (user == null) return;
-
-            if(isHalfDay){
-                UserLeaveCategoryRemainingEntity remaining_half_Day =
-                        serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
-
-                if (remaining_half_Day.getRemainingLeaves() < 1) { /// check are there any half days
-                    /// No half days
-                    saveNoPayEntity(user,true,false,false,false, false);
-                } else {
-
-                    /// there are half days
-                    remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
-
-                    userRepo.save(user);
-                    attendanceRepo.save(attendanceEntity);
-                    userLeaveCategoryRemainingRepo.save(remaining_half_Day);
-                }
-            }
-            else if(isLate && !lateCover) {
-                helper.handleLateAndUnsuccessful(user, attendanceEntity);
-            } else if (isLate) {
-                helper.handleLateAndUnsuccessful(user, attendanceEntity);
-            } else if (unSuccessful) {
-                helper.handleLateAndUnsuccessful(user, attendanceEntity);
-            }
-        });
+        /// ************* What if employee punch the card at 1pm has no short leaves ???? --- move = FUN@1(UNAUTHORIZED)
+        /// ************* if employee forgot to swipe the card which consider as  --- move = FUN@2(UNAUTHORIZED) ---> going as no pay
 
 
-        /// Get all the leaves  ---------------------------------------------------------------------------------
-        /// -----------------------------------------------------------------------------------------------------
-        /// -----------------------------------------------------------------------------------------------------
+        /// SICK, CASUAL , ETC ... all have full day and half days
 
-        /// if employee notify a half day but in that day he/she not going half day it will not consider as half days
-        /// if employee notify a short leave day but in that day he/she not going short leave it will not consider as short leave
-        /// if employee notify a leave day but in that day he/she not going leave it will not consider as leave
+        /// **************** employee make leave but still came to work
+
+        /// If employee apply a leave but came to the office that leave will be canceled and unAuthorized attendance pop in the system
+        /// And to resolve this employee might make request leave under type of SICK, CASUAL, ANNUAl and category of HALF_DAY, FULL_DAY or
+        /// make movement %%%% (ALSO if employee is work full day in that case employee leave will be canceled it will consider full day work) and
+        ///                    (ALSO if employee is work half-day in that case employee leave will be canceled it will consider half-day work)
+        /// leave canceled mean that leave consider as archive and employee need to make another leave will be created depending on
+        /// --- he/she inout (full-day, half-day leave)
+        /// employee also can make a movement request -- in both cases
+        /// short leave does not apply ::: --- under attendance unAuthorized attendance also set to is_resolve to true
+
+        /// ***************** if employee is absent without making a leave --- move = ABSENT
+
+        /// ==== but there is no leave by default system will sign no-pays ======
+
+        /// if employee is absent without make a proper leave that case there is ABSENT were created to the employee
+        /// also Attendance record were crated under unAuthorized to solve he/she make *** LEAVE ***  or request movement
+        /// if she/he make leave ABSENT ENTITY mark as archives and in the description set why is archive ??? nd in attendance is_resolve variable became true
+        /// but employee make movement ABSENT ENTITY mark as archives and in the description set why is archive ??? admin have to accept the movement
+        /// when making leave she/he need to pick wheater is halfday or full day depending on he/she inout also to the movement
+
+        /// ************************* OTHER -------------------------------
+
+        /// if employee is late but he do not cover late work in 3rd time  UNSUCCESSFUL attendance pop in the system --- move = LATE_WORK / LATE / UNSUCCESSFUL
+        /// first 2 short leaves will cut it of when its coming to LATE_WORK / LATE in 3rd time it will going as UNSUCCESSFUL Attendance under halfday
+        /// can resolve using a leave or make movemnt ==== but there is no leave by default system will sign no-pays ======
+
+        /// ***************************************************************************************************************
+        /// ***************************************************************************************************************
+        /// ***************************************************************************************************************
+        /// ------------------------------------------- IMPLEMENTATION ----------------------------------------------------
 
 
-        /// if admin not approved the leaving request but he/she absent today it will cut off one leave but there is no leaves it will going nopay
+        /// Get All Attendance ALL THE UN-AUTHORIZED AND UN-SUCCESSFUL ----------------------------------------------------------------------------------------
 
-        /// Get all the movements -------------------------------------------------------------------------------
-        /// -----------------------------------------------------------------------------------------------------
-        /// -----------------------------------------------------------------------------------------------------
-
-        Iterable<MovementsEntity> all = movementsRepo.findOverdueEntities(new Date());
-
-        List<MovementsEntity> filtered = StreamSupport.stream(all.spliterator(), false)
-                .filter(entity -> Boolean.TRUE.equals(entity.getIsLate()) ||
-                        Boolean.TRUE.equals(entity.getIsUnSuccessfulAttdate()) ||
-                        Boolean.TRUE.equals(entity.getIsLateCover()) ||
-                        Boolean.TRUE.equals(entity.getIsAbsent()))
+        List<AttendanceEntity> attendanceEntities = attendanceRepo.findOverdueEntities(new Date());
+        List<AttendanceEntity> overdueEntities_filter = StreamSupport.stream(attendanceEntities.spliterator(), false)
+                .filter(entity -> Boolean.TRUE.equals(entity.getIsUnAuthorized()) || Boolean.TRUE.equals(entity.getUnSuccessful()))
                 .collect(Collectors.toList());
 
-        filtered.forEach(movement -> {
-            if (!movement.getIsAccepted() && movement.getIsPending()) {
-                ///  Check due date pass or not if pass movement expired and employee leaves might reduce and there is no leaves it will consider as nopay
-                movement.setExpired(true);
-                List<UserLeaveTypeRemaining> userLeaveCategoryRemaining = serviceEvent.getUserLeaveTypeRemaining(movement.getUser());
-
-                List<UserLeaveTypeRemaining> filteredList = userLeaveCategoryRemaining.stream()
-                        .filter(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1)
-                        .collect(Collectors.toList());
-
-                boolean allMatch = userLeaveCategoryRemaining.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
-
-                if (allMatch) {
-                    System.out.println("All elements have remainingLeaves < 1");
-
-                    saveNoPayEntity(movement.getUser(),movement.getIsHalfDay(),
-                            movement.getIsUnSuccessfulAttdate(),movement.getIsLate(),movement.getIsLateCover(),
-                            movement.getIsAbsent());
-
-                } else {
-                    System.out.println("At least one element has remainingLeaves >= 1");
-                }
-            }
-
+        overdueEntities_filter.forEach(entity -> {
+            saveNoPayEntity(entity.getUser(), null, false,
+                    false, false, false,
+                    true, entity.getDate());
         });
 
-        /// check the due date expire or not
-        /// if employee is late he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
-        /// if employee is unSuccessful he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
-        /// if employee is absent he/she can make a movement with in certain time duration another wise employee leaves might reduce and there is no leaves it will consider as nopay
-
         /// Handle Absents --------------------------------------------------------------------------------------
-        ///  -----------------------------------------------------------------------------------------------------
-        ///  -----------------------------------------------------------------------------------------------------
-
-        /// if employee is unSuccessful in today he/she can make a absent request
-        /// if employee is half-day in today he/she can make a absent request
 
 
+    }
+
+    public List<InOutEntity> getMorningPunchOnlyRecords() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        Date yesterdayDate = Date.from(yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        return inOutRepo.findMorningPunchOnly(yesterdayDate);
+    }
+
+    public List<InOutEntity> getEveningPunchOnlyRecords() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        Date yesterdayDate = Date.from(yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        return inOutRepo.findEveningPunchOnly(yesterdayDate);
+    }
+
+    @Override
+    public void prerequisite() {
+
+        /// Employees coming before 8.30 am
+        Set<InOutEntity> employeesArrivedBefore830 = new HashSet<>(inOutRepo.findEmployeesBefore830(getYesterdayDate()));
+
+        /// Employees leave the office between 5.00 - 5.30 pm
+        Set<InOutEntity> employeesLeftBetween500And530 = new HashSet<>(inOutRepo.findEmployeesLeavingBetween5And530_(getYesterdayDate()));
+
+        /// Employees Not Arrived Before 830AM
+        //Set<InOutEntity> inOutEntities_EmployeesNotArrivedBefore830AM = new HashSet<>(inOutRepo.findEmployeesNotArrivedBefore830AM(getYesterdayDate()));
+
+        /// Arrived Between 10AM And 11.59AM
+        //Set<InOutEntity> inOutEntities_EmployeesArrivedBetween10AMAnd1159AM = new HashSet<>(inOutRepo.findEmployeesArrivedBetween10AMAnd1159AM(getYesterdayDate()));
+
+        /// Arrived Between 12PM And 2PM
+        //Set<InOutEntity> inOutEntities_EmployeesArrivedBetween12PMAnd2PM = new HashSet<>(inOutRepo.findEmployeesArrivedBetween12PMAnd2PM(getYesterdayDate()));
+
+        /// Arrived Between 2PM And 5PM
+        //Set<InOutEntity> inOutEntities_EmployeesArrivedBetween2PMAnd5PM = new HashSet<>(inOutRepo.findEmployeesArrivedBetween2PMAnd5PM(getYesterdayDate()));
+
+        /// Arrived Late After 9AM
+        //Set<InOutEntity> inOutEntities_ArrivedLateAfter9AM = new HashSet<>(inOutRepo.findEmployeesArrivedLateAfter9AM(getYesterdayDate()));
+
+        /// Employees Half-Day
+        Set<InOutEntity> inOutEntities_EmployeesHalfDay = new HashSet<>(inOutRepo.findEmployeesHalfDay(getYesterdayDate()));
+
+        /// Employees who Covered LateTime - 1
+        Set<InOutEntity> inOutEntities_EmployeesWhoCoveredLateTime = new HashSet<>(inOutRepo.findEmployeesWhoCoveredLateTime(getYesterdayDate()));
+
+        /// Employees Who Did Not Cover LateTime
+        Set<InOutEntity> inOutEntities_EmployeesWhoDidNotCoverLateTime = new HashSet<>(inOutRepo.findEmployeesWhoDidNotCoverLateTime(getYesterdayDate()));
+
+        /// Employees Who came between 8.30 - 9.00 am
+        Set<InOutEntity> employeesArrivedBetween830And900 = new HashSet<>(inOutRepo.findEmployeesBetween830And9(getYesterdayDate()));
+
+
+        /// Cover -- FULL DAY ✅
+        /// Cover -- UnAuthorized ✅ (swipe error)
+        /// Cover -- UnSuccessFull ✅ (Late and Late work do not cover)
+        /// Cover -- LATE ✅ (Late and Late work do cover so it will consider as full day)
+        /// Cover -- HALF-DAY ✅
+
+        /// Report employee who has full day attendance and who has swipe error ***************************************** --- START
+
+        if (employeesArrivedBefore830.equals(employeesLeftBetween500And530)) {
+            /// On Time Employees and full day
+            Set<InOutEntity> commonEmployees = new HashSet<>(employeesArrivedBefore830);
+            commonEmployees.retainAll(employeesLeftBetween500And530);
+
+            for (InOutEntity commonEmployee : commonEmployees)
+                reportAttendance(commonEmployee, true, false, false, false, false, false);
+
+        } else {
+            /// UnAuthorized employees (employees who forgot to swipe the card)
+
+            HashSet<InOutEntity> inOutEntities_MorningPunch = new HashSet<>(getMorningPunchOnlyRecords());
+            HashSet<InOutEntity> inOutEntities_EveningPunch = new HashSet<>(getEveningPunchOnlyRecords());
+
+            for (InOutEntity employee : inOutEntities_MorningPunch)
+                reportAttendance(employee, false, true, false, false, false, false);
+
+            for (InOutEntity employee : inOutEntities_EveningPunch)
+                reportAttendance(employee, false, true, false, false, false, false);
+
+            NoPayEntity noPayEntity = new NoPayEntity();
+            /// GOING NO-PAY
+        }
+
+
+        /// Report employee who has full day attendance and who has swipe error ***************************************** --- END
+
+        /// Reporting Late employees  ********************************************************* --- START
+        employeesArrivedBetween830And900.forEach(entity -> {
+
+            inOutEntities_EmployeesWhoDidNotCoverLateTime.forEach(dnclt -> {
+                reportAttendance(dnclt, false, false, true, true, false, false);
+            });
+
+            inOutEntities_EmployeesWhoCoveredLateTime.forEach(clt -> {
+                reportAttendance(clt, true, false, false, true, true, false);
+            });
+        });
+        /// Reporting Late employees  ********************************************************* --- END
+
+
+        /// Reporting Half Days  ********************************************************* --- START
+        inOutEntities_EmployeesHalfDay.forEach(entity -> {
+
+            /// Check any leaves are remaining if do not nopay if does okay !!
+
+            /// ALSO CHECK DOES EMPLOYEE APPLY A HALF DAY LEAVE AND GET APPROVED 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+            /// ===================== AND THERE IS NO LEAVES SYSTEM AUTOMATICALLY SIGNS NO-PAYS =================== 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+
+            AbsenteeReq req = new AbsenteeReq();
+            req.setEmployeeId(entity.getEmployeeID());
+            req.setUserId(entity.getUserId());
+            req.setIsHalfDay(true);
+            req.setHappenDate(entity.getDate());
+            req.setComment("GOING HALF DAY WITH-OUT NOTIFYING");
+
+            reportAbsent(req, true);
+            reportAttendance(entity, true, true, false, false, false, true);
+
+            /// SYSTEM AUTOMATICALLY CUT IT OF IF DUE DATE CAME AND IT WILL CONSIDER AS NO-PAY
+
+
+        });
+        /// Reporting Half Days  ********************************************************* --- END
+
+        /*if (employeesArrivedBetween830And900.equals(employeesCoveredLateHours)) {
+            ///  Late Employees and cover their work
+
+            Set<InOutEntity> commonEmployees = new HashSet<>(employeesArrivedBefore830);
+            commonEmployees.retainAll(employeesLeftBetween500And530);
+
+            for (InOutEntity employee : commonEmployees)
+                reportAttendance(employee, false, true,false,  false, false, false);
+
+        } else {
+            /// Late employees those who not cover late work
+            for (InOutEntity employee : employeesArrivedBefore830)
+                reportAttendance(employee, false, true,false,  false, false, false);
+        }*/
+
+
+        List<UserEntity> absentEmployeesToday = inOutRepo.findAbsentEmployeesYesterday(); /// Absent employees
+        reportAbsent(absentEmployeesToday);
     }
 
     /*
@@ -504,15 +636,16 @@ public class Check_Service_Impl implements Check_Service {
       if employee work at 3 year he/she what ever she want until all leaves are gone
     * */
 
-
     @Override
-    public void reportAttendance(InOutEntity inout, Boolean fullday, Boolean unAuthorized, Boolean late, Boolean late_cover, Boolean half_day) {
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    public void reportAttendance(InOutEntity inout, Boolean fullday, Boolean unAuthorized, Boolean unSuccessful, Boolean late, Boolean late_cover, Boolean half_day) {
+
         UserEntity userByEmployeeId = lmsService.getUserByEmployeeId(inout.getEmployeeID());
 
         if (userByEmployeeId == null) return;
 
         if (attendanceRepo.existsByUserAndDate(userByEmployeeId, getYesterdayDate())) return;
-
 
         AttendanceEntity attendance = new AttendanceEntity();
         attendance.setPublicId(utils.generateId(10));
@@ -521,7 +654,8 @@ public class Check_Service_Impl implements Check_Service {
 
         attendance.setLate(late);
         attendance.setLateCover(late_cover);
-        attendance.setUnSuccessful(unAuthorized);
+        attendance.setUnSuccessful(unSuccessful);
+        attendance.setUnAuthorized(unAuthorized);
         attendance.setFullDay(fullday);
         attendance.setHalfDay(half_day);
 
@@ -529,18 +663,80 @@ public class Check_Service_Impl implements Check_Service {
         attendance.setArrival_time(inout.getTimeMoa());
         attendance.setLeft_time(inout.getTimeEve());
 
+        if (unAuthorized) {
+            attendance.setDueDateForUA(getDueDate());
+            attendance.setIssues(true);
+            attendance.setIssue_description("GOING UNAUTHORIZED DUE TO THE  " + (half_day ? "HALF DAY " : "UNKNOWN REASON PLEASE CHECK ATTENDANCE") + "AND BEFORE PASS THE DUE DATE PLEASE RESOLVE IT");
+
+        } else if (unSuccessful) {
+            helper.handleLateAndUnsuccessful(userByEmployeeId, attendance);
+            attendance.setDueDateForUA(getDueDate()); /// Get all the un-successful attendance if date goes make it no pay
+        }
+
         attendanceRepo.save(attendance);
 
     }
 
     @Override
-    public void reportAbsent(List<InOutEntity> inout, List<UserEntity> absentEmployeesToday) {
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    public <T> void reportAttendance(Object obj, Boolean fullday, Boolean unAuthorized, Boolean unSuccessful, Boolean late, Boolean late_cover, Boolean half_day) {
+        InOutEntity inOutEntity = null;
+        AttendanceEntity attendanceEntity = null;
 
-    }
+        if (obj instanceof InOutEntity) {
+            inOutEntity = (InOutEntity) obj;
+        } else if (obj instanceof AttendanceEntity) {
+            attendanceEntity = (AttendanceEntity) obj;
+        } else {
+            System.out.println("Unknown Class");
+            return;
+        }
 
-    @Override
-    public void reportAbsent(InOutEntity inout, List<UserEntity> absentEmployeesToday) {
+        // Dynamically fetch UserEntity based on the type of obj
+        UserEntity userByEmployeeId = (inOutEntity != null) ?
+                lmsService.getUserByEmployeeId(inOutEntity.getEmployeeID()) :
+                lmsService.getUserByEmployeeId(attendanceEntity.getUser().getEmployeeId());
 
+        if (userByEmployeeId == null) return;
+
+        if (attendanceRepo.existsByUserAndDate(userByEmployeeId, getYesterdayDate())) return;
+
+        AttendanceEntity attendance = new AttendanceEntity();
+        attendance.setPublicId(utils.generateId(10));
+        attendance.setUser(userByEmployeeId);
+        attendance.setDate((inOutEntity != null) ? inOutEntity.getDate() : attendanceEntity.getDate());
+
+        attendance.setLate(late);
+        attendance.setLateCover(late_cover);
+        attendance.setUnSuccessful(unSuccessful);
+        attendance.setUnAuthorized(unAuthorized);
+        attendance.setFullDay(fullday);
+        attendance.setHalfDay(half_day);
+
+        if (inOutEntity != null) {
+            attendance.setArrival_date(inOutEntity.getPunchInMoa());
+            attendance.setArrival_time(inOutEntity.getTimeMoa());
+            attendance.setLeft_time(inOutEntity.getTimeEve());
+        } else {
+            attendance.setArrival_date(attendanceEntity.getArrival_date());
+            attendance.setArrival_time(attendanceEntity.getArrival_time());
+            attendance.setLeft_time(attendanceEntity.getLeft_time());
+        }
+
+        if (unAuthorized) {
+            attendance.setDueDateForUA(getDueDate());
+            attendance.setIssues(true);
+            attendance.setIssue_description("GOING UNAUTHORIZED DUE TO THE  " +
+                    (half_day ? "HALF DAY " : "UNKNOWN REASON PLEASE CHECK ATTENDANCE") +
+                    " AND BEFORE PASS THE DUE DATE PLEASE RESOLVE IT");
+
+        } else if (unSuccessful) {
+            helper.handleLateAndUnsuccessful(userByEmployeeId, attendance);
+            attendance.setDueDateForUA(getDueDate());
+        }
+
+        attendanceRepo.save(attendance);
     }
 
     private UserEntity getUser(String user_id, String employee_id) {
@@ -556,103 +752,135 @@ public class Check_Service_Impl implements Check_Service {
         return user;
     }
 
+    public void saveLeave(UserEntity user, Date happenDate) {
+        LeaveEntity leaveEntity = new LeaveEntity();
+        leaveEntity.setPublicId(utils.generateId(10));
+        leaveEntity.setUser(user);
+
+        leaveEntity.setSubmitDate(new Date());
+        leaveEntity.setFromDate(new Date());
+
+        leaveEntity.setIsHODApproved(false);
+        leaveEntity.setSupervisedApproved(false);
+        leaveEntity.setHappenDate(happenDate);
+
+        leaveRepo.save(leaveEntity);
+    }
+
     @Override
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    /// Day absents
     public void reportAbsent(List<UserEntity> absentEmployeesToday) {
+
+
+        /// if employee is absent without make a proper leave that case there is ABSENT were created to the employee
+        /// also Attendance record were crated under unAuthorized to solve he/she make *** LEAVE ***  or request movement
+        /// if she/he make leave ABSENT ENTITY mark as archives and in the description set why is archive ??? nd in attendance is_resolve variable became true
+        /// but employee make movement ABSENT ENTITY mark as archives and in the description set why is archive ??? admin have to accept the movement
+        /// when making leave she/he need to pick wheater is halfday or full day depending on he/she inout also to the movement
+
+        /// ALSO CHECK DOES EMPLOYEE APPLY A HALF DAY LEAVE AND GET APPROVED 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+        /// ===================== AND THERE IS NO LEAVES SYSTEM AUTOMATICALLY SIGNS NO-PAYS =================== 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+
 
         absentEmployeesToday.forEach(employee -> {
 
             UserEntity user = getUser(employee.getUserId(), employee.getEmployeeId());
             if (user == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-            ;
+
+            /// **************************************************************
+
+
+            AttendanceEntity attendance = new AttendanceEntity();
+            attendance.setPublicId(utils.generateId(10));
+            attendance.setUser(employee);
+            attendance.setDate(new Date());
+
+            attendance.setLate(false);
+            attendance.setLateCover(false);
+            attendance.setUnSuccessful(false);
+
+            attendance.setUnAuthorized(true);
+            attendance.setIsAbsent(true);
+
+            attendance.setFullDay(false);
+            attendance.setHalfDay(false);
+            attendance.setDueDateForUA(getDueDate());
+            attendance.setIssues(true);
+
+            attendance.setIssue_description("GOING UNAUTHORIZED DUE TO THE  " + "ABSENT WITH OUT MAKING A LEAVE " +
+                    " AND BEFORE PASS THE DUE DATE PLEASE RESOLVE IT");
+
+            attendanceRepo.save(attendance);
+
+            /// **************************************************************
 
             AbsenteeEntity absenteeEntity = new AbsenteeEntity();
             absenteeEntity.setPublicId(utils.generateId(10));
             absenteeEntity.setUser(user);
             absenteeEntity.setDate(new Date());
-            absenteeEntity.setSwipeErr(false);
             absenteeEntity.setIsHODApproved(false);
             absenteeEntity.setIsSupervisedApproved(false);
             absenteeEntity.setAudited(0);
             absenteeEntity.setIsNoPay(0);
 
-            absenteeEntity.setIsAbsent(false);
+            absenteeEntity.setIsAbsent(true);
             absenteeEntity.setIsLate(false);
             absenteeEntity.setIsLateCover(false);
             absenteeEntity.setIsUnSuccessfulAttdate(false);
             absenteeEntity.setIsHalfDay(false);
 
+            absenteeEntity.setHappenDate(getYesterdayDate());
+
             absenteeEntity.setIsPending(false);
             absenteeEntity.setIsAccepted(false);
 
-            List<UserLeaveTypeRemaining> userLeaveCategoryRemaining = serviceEvent.getUserLeaveTypeRemaining(user);
-
-            boolean allMatch = userLeaveCategoryRemaining.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
-
-            if (allMatch) {
-                System.out.println("All elements have remainingLeaves < 1");
-                absenteeEntity.setIsNoPay(1);
-
-                saveNoPayEntity(user,true,false,false,false, true);
-
-
-            } else {
-                absenteeEntity.setIsNoPay(0);
-                System.out.println("At least one element has remainingLeaves >= 1");
-                /// Cut of the leave category if employee is absent
-            }
             absenteeRepo.save(absenteeEntity);
 
         });
     }
 
     @Override
-    public void prerequisite() {
-        Set<InOutEntity> employeesArrivedBefore830 = new HashSet<>(inOutRepo.findEmployeesBefore830(getYesterdayDate()));
-        Set<InOutEntity> employeesLeftBetween500And530 = new HashSet<>(inOutRepo.findEmployeesLeavingBetween5And530(getYesterdayDate()));
+    /// CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    CHECK IT PLEASE ⚠️ DATA IS MISSING OR NOT
+    /// Absent Req for unSuccessful, Short_Leave, LateCover, Late
+    public void reportAbsent_(AbsenteeReq req, Boolean special) {
+        UserEntity user = getUser(req.getUserId(), req.getEmployeeId());
+        if (user == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
 
-        if (employeesArrivedBefore830.equals(employeesLeftBetween500And530)) {
-            /// On Time Employees and full day
-            Set<InOutEntity> commonEmployees = new HashSet<>(employeesArrivedBefore830);
-            commonEmployees.retainAll(employeesLeftBetween500And530);
+        AbsenteeEntity absenteeEntity = new AbsenteeEntity();
+        absenteeEntity.setPublicId(utils.generateId(10));
+        absenteeEntity.setUser(user);
+        absenteeEntity.setDate(new Date());
+        absenteeEntity.setIsHODApproved(false);
+        absenteeEntity.setIsSupervisedApproved(false);
+        absenteeEntity.setAudited(0);
+        absenteeEntity.setIsNoPay(0);
 
-            for (InOutEntity commonEmployee : commonEmployees)
-                reportAttendance(commonEmployee, true, false, false, false, false);
+        absenteeEntity.setIsAbsent(req.getAbsent() != null ? req.getAbsent() : false);
+        absenteeEntity.setIsLate(req.getLate() != null ? req.getLate() : false);
+        absenteeEntity.setIsLateCover(req.getLateCover() != null ? req.getLateCover() : false);
+        absenteeEntity.setIsUnSuccessfulAttdate(req.getUnSuccessfulAttdate() != null ? req.getUnSuccessfulAttdate() : false);
+        absenteeEntity.setIsHalfDay(req.getHalfDay() != null ? req.getHalfDay() : false);
+        absenteeEntity.setIsArchived(req.getArchived() != null ? req.getArchived() : false);
 
-        } else {
-            /// UnSuccessful or UnAuthorized employees
-            for (InOutEntity employee : employeesArrivedBefore830)
-                reportAttendance(employee, false, true, false, false, false);
-        }
+        absenteeEntity.setIsPending(false);
+        absenteeEntity.setIsAccepted(false);
 
-        // =======================================================================================================
+        List<UserLeaveTypeRemaining> userLeaveCategoryRemaining = serviceEvent.getUserLeaveTypeRemaining(user);
+        boolean allMatch = userLeaveCategoryRemaining.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
 
-        Set<InOutEntity> employeesArrivedBetween830And900 = new HashSet<>(inOutRepo.findEmployeesBetween830And9(getYesterdayDate()));
-        Set<InOutEntity> employeesCoveredLateHours = new HashSet<>(inOutRepo.findEmployeesCoveredLateHoursYesterday(getYesterdayDate()));
-
-        if (employeesArrivedBetween830And900.equals(employeesCoveredLateHours)) {
-            ///  Late Employees and cover their work
-
-            Set<InOutEntity> commonEmployees = new HashSet<>(employeesArrivedBefore830);
-            commonEmployees.retainAll(employeesLeftBetween500And530);
-
-            for (InOutEntity commonEmployee : commonEmployees)
-                reportAttendance(commonEmployee, false, false, true, true, false);
-
-        } else {
-            /// Late employees those who not cover late work
-            for (InOutEntity employee : employeesArrivedBefore830)
-                reportAttendance(employee, false, false, true, false, false);
-        }
-
-        List<UserEntity> absentEmployeesToday = inOutRepo.findAbsentEmployeesYesterday(); /// Absent employees
-        reportAbsent(absentEmployeesToday);
+        if(special)
+            absenteeRepo.save(absenteeEntity);
+        else if (!allMatch)
+            absenteeRepo.save(absenteeEntity);
     }
 
     private UserLeaveTypeRemaining getUserLeaveTypeRemaining(String name, UserEntity user) {
         return serviceEvent.getUserLeaveTypeRemaining(name, user.getUserId(), user.getEmployeeId());
     }
 
-    /// If employee make leave but he/she have no leaves it leave not accepting by admin but she/he absent it will consider sa no pay
     @Override
     public void requestALeave(LeaveReq req, String userId, String employeeId) { ///  Leave Request user - userId
         UserEntity u = lmsService.getUserByUserId(
@@ -698,23 +926,48 @@ public class Check_Service_Impl implements Check_Service {
                 }
             }
 
-            LeaveEntity leaveEntity = new LeaveEntity();
-            leaveEntity.setPublicId(utils.generateId(10));
-            leaveEntity.setSubmitDate(new Date());
+            /// Check ae there any leaves
 
-            leaveEntity.setFromDate(req.getFromDate());
-            leaveEntity.setToDate(req.getToDate());
+            List<UserLeaveTypeRemaining> userLeaveTypeRemainingRepo = serviceEvent.getUserLeaveTypeRemaining(u);
 
-            leaveEntity.setLeaveCategory(leaveCategory);
-            leaveEntity.setLeaveType(leaveType);
+            List<UserLeaveTypeRemaining> filteredList = userLeaveTypeRemainingRepo.stream()
+                    .filter(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1)
+                    .collect(Collectors.toList());
 
-            leaveEntity.setIsSupervisedApproved(false);
-            leaveEntity.setIsHODApproved(false);
-            leaveEntity.setIsHalfDay(req.getHalfDay());
-            leaveEntity.setNumOfDays(req.getNumOfDays());
-            leaveEntity.setDescription(req.getDescription());
+            boolean allMatch = userLeaveTypeRemainingRepo.stream().allMatch(userLeaveTypeRemaining -> userLeaveTypeRemaining.getRemainingLeaves() < 1);
 
-            lmsService.saveLeave(leaveEntity);
+            if (!allMatch) {
+
+                LeaveEntity leaveEntity = new LeaveEntity();
+                leaveEntity.setPublicId(utils.generateId(10));
+                leaveEntity.setUser(u);
+                leaveEntity.setSubmitDate(new Date());
+
+                leaveEntity.setIsNoPay(0);
+
+                leaveEntity.setFromDate(req.getFromDate());
+                leaveEntity.setToDate(req.getToDate());
+
+                leaveEntity.setLeaveCategory(leaveCategory);
+                leaveEntity.setLeaveType(leaveType);
+
+                leaveEntity.setIsSupervisedApproved(false);
+                leaveEntity.setIsHODApproved(false);
+                leaveEntity.setIsHalfDay(req.getHalfDay());
+                leaveEntity.setNumOfDays(req.getNumOfDays());
+                leaveEntity.setDescription(req.getDescription());
+
+                leaveEntity.setUnSuccessful(false);
+                leaveEntity.setIsLate(false);
+                leaveEntity.setIsLateCover(false);
+                leaveEntity.setIsShort_Leave(false);
+                leaveEntity.setIsAccepted(false);
+                leaveEntity.setIsPending(false);
+                leaveEntity.setNotUsed(false);
+
+                lmsService.saveLeave(leaveEntity);
+            } else
+                return;
 
             /// ------------ Haven't implement system to check NoPay || if employee make leave also have no leaves it conasider sa no pay
             /// -------------------------------------------------------------
@@ -833,18 +1086,15 @@ public class Check_Service_Impl implements Check_Service {
         lmsService.saveLeave(entity);
     }
 
-
     @Override
-    public void processLeaveBySup(String superId, String leaveId) { /// Process All leaves and select certain leave and process , adding soon
-    /// Supervisor by using his/her id and get particular leave accept it using leaveId
+    public void processLeaveBySup(String superId, String leaveId) {
         LeaveEntity entity = lmsService.getOneLeave(leaveId);
         UserEntity employee = lmsService.getUserByEmployeeId(superId);
 
         if (employee == null || entity == null) return;
 
-        if (hasRole(employee.getRoles(), "SUPERVISOR")) {
-            approvedLeaveBySup(entity);
-        }
+        if (hasRole(employee.getRoles(), "SUPERVISOR")) approvedLeaveBySup(entity);
+
     }
 
     @Override
@@ -925,7 +1175,7 @@ public class Check_Service_Impl implements Check_Service {
 
         if (employee == null || allLeaveByIds == null || allLeaveByIds.isEmpty()) return;
 
-        if (hasRole(employee.getRoles(), "SUPERVISOR"))
+        if (hasRole(employee.getRoles(), "SUPERVI§SOR"))
             allLeaveByIds.forEach(this::approvedLeaveByHOD);
     }
 
@@ -934,7 +1184,5 @@ public class Check_Service_Impl implements Check_Service {
     public void getAllTheInOutRecordsFromSLT() {
         /// First get the all the data and using employee id query the our local database
     }
-
-    /// Request a movement for absent ( certain period of time ) other wise it consider as leave ||
-    /// 1st year employee has no leaves and 2nd year has levaes but under certain regulations 3rd year employee have no regulations
+    
 }

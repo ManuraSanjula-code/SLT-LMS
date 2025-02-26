@@ -2,7 +2,6 @@ package com.slt.peotv.lmsmangmentservice.entity.Leave.category;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
-
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,18 +19,16 @@ public class UserLeaveCategoryRemainingEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(nullable=false)
     private String publicId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @ManyToOne
-    @JoinColumn(name = "leave_category_id", nullable = false)
+    @JoinColumn(name = "leave_category_id")
     private LeaveCategoryEntity leaveCategory;
 
-    @Column(nullable=false)
     private Integer remainingLeaves;
 
     public Long getId() {
@@ -40,6 +37,14 @@ public class UserLeaveCategoryRemainingEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public UserEntity getUser() {
@@ -66,19 +71,11 @@ public class UserLeaveCategoryRemainingEntity {
         this.remainingLeaves = remainingLeaves;
     }
 
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        UserLeaveCategoryRemainingEntity that = (UserLeaveCategoryRemainingEntity) o;
-        return Objects.equals(id, that.id) && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(leaveCategory, that.leaveCategory) && Objects.equals(remainingLeaves, that.remainingLeaves);
+        UserLeaveCategoryRemainingEntity remaining = (UserLeaveCategoryRemainingEntity) o;
+        return Objects.equals(id, remaining.id) && Objects.equals(publicId, remaining.publicId) && Objects.equals(user, remaining.user) && Objects.equals(leaveCategory, remaining.leaveCategory) && Objects.equals(remainingLeaves, remaining.remainingLeaves);
     }
 
     @Override

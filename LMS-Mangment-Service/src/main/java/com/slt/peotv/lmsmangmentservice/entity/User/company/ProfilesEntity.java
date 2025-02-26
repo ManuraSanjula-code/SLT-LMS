@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.Objects;
 
 @Entity
-@Table(name="profile")
+@Table(name = "profile")
 @Setter
 @Getter
 @EqualsAndHashCode
@@ -20,58 +20,41 @@ public class ProfilesEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
-    @Column(name = "Name", length = 45, nullable = false)
     private String name;
 
-    @Column(nullable = false)
     public String publicId;
 
-    @Column(name = "work_start", length = 45, nullable = false)
     private String workStart;
 
-    @Column(name = "work_ends", length = 45, nullable = false)
     private String workEnds;
 
-    @Column(name = "ignore_sl", length = 45, nullable = false)
     private String ignoreSl;
 
-    @Column(name = "grace_periode_start", length = 45, nullable = false)
     private String gracePeriodeStart;
 
-    @Column(name = "hd_start", length = 45, nullable = false)
     private String hdStart;
 
-    @Column(name = "sl_start_morning", length = 45, nullable = false)
     private String slStartMorning;
 
-    @Column(name = "sl_start_evening", length = 45, nullable = false)
     private String slStartEvening;
 
-    @Column(name = "possible_fp_locations", columnDefinition = "TEXT", nullable = false)
     private String possibleFpLocations;
 
-    @Column(name = "default_hrs", length = 45, nullable = false)
     private String defaultHrs;
 
-    @Column(name = "hd_hrs", length = 45, nullable = false)
     private String hdHrs;
 
-    @Column(name = "min_hrs_for_sl", length = 45, nullable = false)
     private String minHrsForSl;
 
-    @Column(name = "short_leave_count", length = 45, nullable = false)
     private String shortLeaveCount;
 
-    @Column(name = "hd_ends_morning", length = 45, nullable = false)
     private String hdEndsMorning;
 
-    @Column(name = "flexi_days", length = 45, nullable = false)
     private String flexiDays;
 
-    @Column(name = "flexi_hrs_start", length = 45, nullable = false)
     private String flexiHrsStart;
 
-    @ManyToMany(mappedBy="roles")
+    @ManyToMany(mappedBy = "roles")
     private Collection<UserEntity> users;
 
     public Integer getId() {
@@ -88,6 +71,14 @@ public class ProfilesEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public String getWorkStart() {
@@ -216,14 +207,6 @@ public class ProfilesEntity {
 
     public void setUsers(Collection<UserEntity> users) {
         this.users = users;
-    }
-
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
     }
 
     @Override
