@@ -18,14 +18,10 @@ public class SectionEntity {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private long id;
-
-    @Column(nullable=false, length=20)
     private String section;
-
-    @Column(nullable = false)
     public String publicId;
 
-    @ManyToMany(mappedBy="roles")
+    @ManyToMany(mappedBy="sections")
     private Collection<UserEntity> users;
 
     public long getId() {
@@ -36,20 +32,20 @@ public class SectionEntity {
         this.id = id;
     }
 
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
-    }
-
     public String getSection() {
         return section;
     }
 
     public void setSection(String section) {
         this.section = section;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public Collection<UserEntity> getUsers() {

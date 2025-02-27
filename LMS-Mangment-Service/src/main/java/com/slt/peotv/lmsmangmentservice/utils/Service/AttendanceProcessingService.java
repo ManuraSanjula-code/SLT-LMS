@@ -34,7 +34,7 @@ public class AttendanceProcessingService {
     @Autowired
     private UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
     @Autowired
-    private Check_Service_Impl.Helper helper;
+    private Check_Service_Impl checkService;
 
     @Transactional
     public void processEmployeeLeave(Long userId, Date processDate, Boolean isProved) {
@@ -64,7 +64,11 @@ public class AttendanceProcessingService {
                 if (isFullDayAttendance) {
                     leave.setNotUsed(true); // Employee attended fully, so leave is not used.
                 } else if (isHalfDay) {
-                    leave.setNotUsed(true);
+
+                    /// leave will be canceled and another unAuthorized leave will pop up
+                    checkService.saveLeave(user, processDate);
+
+                    /*leave.setNotUsed(true);
                     leave.setIsHalfDay(true);
 
                     if (remaining_half_Day.getRemainingLeaves() < 1) {
@@ -73,7 +77,8 @@ public class AttendanceProcessingService {
                     }else{
                         if(leave.getUser() != null)
                             Check_Service_Impl.saveNoPayEntity(leave.getUser(), true, false, false, false, false);
-                    }
+                    }*/
+
 
                 } else if (isShortLeave) {
                     leave.setNotUsed(true);
@@ -83,11 +88,10 @@ public class AttendanceProcessingService {
                         userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
                     }else{
                         if (remaining_half_Day.getRemainingLeaves() < 1) {
-                            remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
-                            userLeaveCategoryRemainingRepo.save(remaining_half_Day);
-                        }else{
-                            if(leave.getUser() != null)
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), true, false, false, false, false);
+
+                            /// unAuthorized leave will pop up
+                            checkService.saveLeave(user, processDate);
+
                         }
                     }
 
@@ -96,7 +100,10 @@ public class AttendanceProcessingService {
                 } else if (isLate) {
                     leave.setNotUsed(true);
                     leave.setDescription("Late but did not cover hours");
-                    helper.handleLateAndUnsuccessful(user, null);
+
+                    /// unAuthorized leave will pop up
+                    checkService.saveLeave(user, processDate);
+
                 }
 
             } else {
@@ -113,8 +120,6 @@ public class AttendanceProcessingService {
                             if (casual.getRemainingLeaves() < 1) {
                                 casual.setRemainingLeaves(casual.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(casual);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         case "ANNUAL" -> {
@@ -122,8 +127,6 @@ public class AttendanceProcessingService {
                             if (annual.getRemainingLeaves() < 1) {
                                 annual.setRemainingLeaves(annual.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(annual);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         case "SICK" -> {
@@ -131,8 +134,6 @@ public class AttendanceProcessingService {
                             if (sick.getRemainingLeaves() < 1) {
                                 sick.setRemainingLeaves(sick.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(sick);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         case "SPECIAL" -> {
@@ -140,8 +141,6 @@ public class AttendanceProcessingService {
                             if (special.getRemainingLeaves() < 1) {
                                 special.setRemainingLeaves(special.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(special);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         case "DUTY" -> {
@@ -149,8 +148,6 @@ public class AttendanceProcessingService {
                             if (duty.getRemainingLeaves() < 1) {
                                 duty.setRemainingLeaves(duty.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(duty);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         case "MATERNITY_LEAVE" -> {
@@ -158,8 +155,6 @@ public class AttendanceProcessingService {
                             if (maternityLeave.getRemainingLeaves() < 1) {
                                 maternityLeave.setRemainingLeaves(maternityLeave.getRemainingLeaves() - 1);
                                 userLeaveTypeRemainingRepo.save(maternityLeave);
-                            }else{
-                                Check_Service_Impl.saveNoPayEntity(leave.getUser(), false, false, false, false, true);
                             }
                         }
                         default -> {

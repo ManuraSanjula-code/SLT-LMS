@@ -63,12 +63,12 @@ public class UserController {
 		return userService.createSection(name);
 	}
 
-	@PostMapping("/profiles/{name}")
+	@PostMapping("/profiles/{name}/create")
 	public ProfilesEntity getProfiles(@PathVariable String name){
 		return userService.getProfiles(name);
 	}
 
-	@PostMapping("/section/{name}")
+	@PostMapping("/section/{name}/create")
 	public SectionEntity getSection(@PathVariable String name){
 		return userService.getSection(name);
 	}

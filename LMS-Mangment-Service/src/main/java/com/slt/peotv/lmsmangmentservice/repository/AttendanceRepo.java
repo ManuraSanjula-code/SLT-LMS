@@ -39,4 +39,7 @@ public interface AttendanceRepo extends CrudRepository<AttendanceEntity, Long> {
     // Get attendance within a specific time period
     @Query("SELECT a FROM AttendanceEntity a WHERE a.date BETWEEN :startDate AND :endDate")
     List<AttendanceEntity> findAttendanceByDateRange(@Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    @Query("SELECT e FROM AttendanceEntity e WHERE e.dueDateForUA < :currentDate")
+    List<AttendanceEntity> findOverdueEntities(@Param("currentDate") Date currentDate);
 }

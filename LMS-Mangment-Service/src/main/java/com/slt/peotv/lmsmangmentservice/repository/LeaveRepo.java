@@ -20,4 +20,7 @@ public interface LeaveRepo extends JpaRepository<LeaveEntity, Long> {
     @Query("SELECT l FROM LeaveEntity l WHERE l.user.id = :userId AND l.fromDate <= :date AND l.toDate >= :date AND (l.isSupervisedApproved = true AND l.isHODApproved = true)")
     List<LeaveEntity> findActiveLeaveByUserAndDate(@Param("userId") Long userId, @Param("date") Date date);
 
+    @Query("SELECT e FROM LeaveEntity e WHERE e.dueDate < :currentDate")
+    List<LeaveEntity> findOverdueEntities(@Param("currentDate") Date currentDate);
+
 }

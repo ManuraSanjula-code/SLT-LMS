@@ -56,6 +56,11 @@ public class InitialUsersSetup {
         createRole(Roles.ROLE_USER.name(), Arrays.asList(readAuthority,writeAuthority));
         RoleEntity roleAdmin = createRole(Roles.ROLE_ADMIN.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
 
+        RoleEntity roleCEO = createRole(Roles.ROLE_CEO.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
+        RoleEntity roleEMPLOYEE = createRole(Roles.ROLE_EMPLOYEE.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
+        RoleEntity roleHOD = createRole(Roles.ROLE_HOD.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
+        RoleEntity roleSUPAVISOR = createRole(Roles.ROLE_SUPERVISOR.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
+
         if(roleAdmin == null) return;
 
         UserEntity adminUser = new UserEntity();
@@ -65,7 +70,7 @@ public class InitialUsersSetup {
         adminUser.setEmailVerificationStatus(false);
         adminUser.setUserId(utils.generateUserId(30));
         adminUser.setEncryptedPassword(bCryptPasswordEncoder.encode("12345678"));
-        adminUser.setRoles(Arrays.asList(roleAdmin));
+        adminUser.setRoles(Arrays.asList(roleAdmin, roleCEO,roleEMPLOYEE, roleHOD , roleSUPAVISOR));
 
         UserEntity storedUserDetails = userRepository.findByEmail("manura@test.com");
         if (storedUserDetails == null) {

@@ -10,6 +10,7 @@ import com.slt.peotv.userservice.lms.exceptions.UserServiceException;
 import com.slt.peotv.userservice.lms.repository.*;
 import com.slt.peotv.userservice.lms.security.UserPrincipal;
 import com.slt.peotv.userservice.lms.service.UserService;
+import com.slt.peotv.userservice.lms.shared.Messaging.UserEventPublisher;
 import com.slt.peotv.userservice.lms.shared.Utils;
 import com.slt.peotv.userservice.lms.shared.dto.AddressDTO;
 import com.slt.peotv.userservice.lms.shared.dto.UserDto;
@@ -67,6 +68,10 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	AuthorityRepository authorityRepo;
+
+	@Autowired
+	UserEventPublisher eventPublisher;
+
 	private final ModelMapper modelMapper = new ModelMapper();
 
 	private static final String UPLOAD_DIR = System.getProperty("user.home") + "/uploads/";
@@ -144,6 +149,8 @@ public class UserServiceImpl implements UserService {
 		// Send an email message to user to verify their email address
 		//amazonSES.verifyEmail(returnValue);
 
+		eventPublisher.sendUserUpdate(storedUserDetails, "INSERT");
+
 		return modelMapper.map(storedUserDetails, UserDto.class);
 	}
 
@@ -163,6 +170,7 @@ public class UserServiceImpl implements UserService {
 		file.transferTo(filePath.toFile());
 
 		UserEntity save = userRepository.save(user);
+		eventPublisher.sendUserUpdate(save, "UPDATE");
 		return modelMapper.map(save, UserDto.class);
 	}
 

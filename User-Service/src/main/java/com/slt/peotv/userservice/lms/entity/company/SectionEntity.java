@@ -25,7 +25,7 @@ public class SectionEntity {
     @Column(nullable = false)
     public String publicId;
 
-    @ManyToMany(mappedBy="roles")
+    @ManyToMany(mappedBy="sections")
     private Collection<UserEntity> users;
 
     public long getId() {

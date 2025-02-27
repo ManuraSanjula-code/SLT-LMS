@@ -2,11 +2,8 @@ package com.slt.peotv.lmsmangmentservice.entity.Leave.category;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
-
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Objects;
 
@@ -15,20 +12,21 @@ import java.util.Objects;
 @Setter
 @Getter
 @EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserLeaveCategoryTotalEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(nullable=false)
     private String publicId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @ManyToOne
-    @JoinColumn(name = "leave_category_id", nullable = false)
+    @JoinColumn(name = "leave_category_id")
     private LeaveCategoryEntity leaveCategory;
 
     private Integer totalLeaves;
@@ -39,6 +37,14 @@ public class UserLeaveCategoryTotalEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public UserEntity getUser() {
@@ -63,14 +69,6 @@ public class UserLeaveCategoryTotalEntity {
 
     public void setTotalLeaves(Integer totalLeaves) {
         this.totalLeaves = totalLeaves;
-    }
-
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
     }
 
     @Override

@@ -30,7 +30,7 @@ public class LeaveProcessingJob {
 
             for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
                 Date processDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
-                if(leave.getSupervisedApproved() && leave.getIsHODApproved())
+                if(leave.getIsSupervisedApproved() && leave.getIsHODApproved())
                     attendanceProcessingService.processEmployeeLeave(leave.getUser().getId(), processDate, true);
                 else
                     attendanceProcessingService.processEmployeeLeave(leave.getUser().getId(), processDate, false);

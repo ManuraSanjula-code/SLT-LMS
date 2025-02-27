@@ -2,183 +2,76 @@ package com.slt.peotv.lmsmangmentservice.entity.Absentee;
 
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Date;
-import java.util.Objects;
 
+@Builder
 @Entity
 @Table(name = "absentee")
 @Setter
 @Getter
 @EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor
 public class AbsenteeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private String publicId;
 
-    @Column(name = "Date", nullable = false)
     private Date date;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     @Column(name = "Is_halfday")
-    private Boolean isHalfDay;
+    @Builder.Default
+    private Boolean isHalfDay = false;
 
-    @Column(name = "is_supervised_approved", nullable = false, columnDefinition = "int(10) unsigned default '0'")
+    @Column(name = "is_supervised_approved", columnDefinition = "int(10) unsigned default '0'")
+    @Builder.Default
     private Boolean isSupervisedApproved = false;
 
-    @Column(name = "is_HOD_approved", nullable = false, columnDefinition = "int(10) unsigned default '0'")
+    @Column(name = "is_HOD_approved", columnDefinition = "int(10) unsigned default '0'")
+    @Builder.Default
     private Boolean isHODApproved = false;
 
-    @Column(name = "swipe_err", columnDefinition = "int(10) unsigned default '0'")
-    private Boolean swipeErr = false;
-
-    @Column(name = "audited", nullable = false, columnDefinition = "int(10) unsigned default '0'")
+    @Column(name = "audited", columnDefinition = "int(10) unsigned default '0'")
+    @Builder.Default
     private Integer audited = 0;
 
-    @Column(name = "etl_run_time", nullable = false, columnDefinition = "timestamp default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
-//    @Temporal(TemporalType.TIMESTAMP)
-    private Date etlRunTime;
-
     @Column(name = "is_nopay", columnDefinition = "int(10) unsigned default '0'")
+    @Builder.Default
     private Integer isNoPay = 0;
-    private Boolean isPending;
-    private Boolean isAccepted;
 
-    private Boolean isLate;
-    private Boolean isAbsent;
-    private Boolean isUnSuccessfulAttdate;
-    private Boolean isLateCover;
-    // Getters and Setters
+    @Builder.Default
+    private Boolean isPending = false;
 
-    public long getId() {
-        return id;
-    }
+    @Builder.Default
+    private Boolean isAccepted = false;
 
-    public void setId(long id) {
-        this.id = id;
-    }
-    public Date getDate() {
-        return date;
-    }
+    @Builder.Default
+    private Boolean isLate = false;
 
-    public void setDate(Date date) {
-        this.date = date;
-    }
+    @Builder.Default
+    private Boolean isAbsent = false;
 
-    public Boolean getIsHalfDay() {
-        return isHalfDay;
-    }
+    @Builder.Default
+    private Boolean isUnSuccessfulAttdate = false;
 
-    public void setIsHalfDay(Boolean isHalfDay) {
-        this.isHalfDay = isHalfDay;
-    }
+    @Builder.Default
+    private Boolean isLateCover = false;
 
-    public Boolean getIsSupervisedApproved() {
-        return isSupervisedApproved;
-    }
+    @Builder.Default
+    private Date happenDate = null; // Explicitly initialized
 
-    public void setIsSupervisedApproved(Boolean isSupervisedApproved) {
-        this.isSupervisedApproved = isSupervisedApproved;
-    }
+    @Builder.Default
+    private Boolean isArchived = false;
 
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
-
-    public Boolean getHalfDay() {
-        return isHalfDay;
-    }
-
-    public void setHalfDay(Boolean halfDay) {
-        isHalfDay = halfDay;
-    }
-
-    public Boolean getSupervisedApproved() {
-        return isSupervisedApproved;
-    }
-
-    public void setSupervisedApproved(Boolean supervisedApproved) {
-        isSupervisedApproved = supervisedApproved;
-    }
-
-    public Boolean getHODApproved() {
-        return isHODApproved;
-    }
-
-    public void setHODApproved(Boolean HODApproved) {
-        isHODApproved = HODApproved;
-    }
-
-    public Boolean getIsHODApproved() {
-        return isHODApproved;
-    }
-
-    public void setIsHODApproved(Boolean isHODApproved) {
-        this.isHODApproved = isHODApproved;
-    }
-
-    public Boolean getSwipeErr() {
-        return swipeErr;
-    }
-
-    public void setSwipeErr(Boolean swipeErr) {
-        this.swipeErr = swipeErr;
-    }
-
-    public Integer getAudited() {
-        return audited;
-    }
-
-    public void setAudited(Integer audited) {
-        this.audited = audited;
-    }
-
-    public Date getEtlRunTime() {
-        return etlRunTime;
-    }
-
-    public void setEtlRunTime(Date etlRunTime) {
-        this.etlRunTime = etlRunTime;
-    }
-
-    public Integer getIsNoPay() {
-        return isNoPay;
-    }
-
-    public void setIsNoPay(Integer isNoPay) {
-        this.isNoPay = isNoPay;
-    }
-
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        AbsenteeEntity that = (AbsenteeEntity) o;
-        return id == that.id && Objects.equals(publicId, that.publicId) && Objects.equals(date, that.date) && Objects.equals(user, that.user) && Objects.equals(isHalfDay, that.isHalfDay) && Objects.equals(isSupervisedApproved, that.isSupervisedApproved) && Objects.equals(isHODApproved, that.isHODApproved) && Objects.equals(swipeErr, that.swipeErr) && Objects.equals(audited, that.audited) && Objects.equals(etlRunTime, that.etlRunTime) && Objects.equals(isNoPay, that.isNoPay);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, publicId, date, user, isHalfDay, isSupervisedApproved, isHODApproved, swipeErr, audited, etlRunTime, isNoPay);
-    }
+    @Builder.Default
+    private String comment = ""; // Explicitly initialized
 }

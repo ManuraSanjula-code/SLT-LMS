@@ -71,7 +71,7 @@ public class ProfilesEntity {
     @Column(name = "flexi_hrs_start", length = 45, nullable = false)
     private String flexiHrsStart;
 
-    @ManyToMany(mappedBy="roles")
+    @ManyToMany(mappedBy = "profiles")
     private Collection<UserEntity> users;
 
     public Integer getId() {

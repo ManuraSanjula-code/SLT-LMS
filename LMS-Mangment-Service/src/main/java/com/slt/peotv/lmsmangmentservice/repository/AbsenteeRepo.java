@@ -5,6 +5,7 @@ import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,4 +13,5 @@ import java.util.Optional;
 public interface AbsenteeRepo extends JpaRepository<AbsenteeEntity, Long> {
     List<AbsenteeEntity> findByUser(UserEntity user);
     Optional<AbsenteeEntity> findByPublicId(String publicId);
+    Optional<AbsenteeEntity> findByUserAndDate(UserEntity user, Date date);
 }

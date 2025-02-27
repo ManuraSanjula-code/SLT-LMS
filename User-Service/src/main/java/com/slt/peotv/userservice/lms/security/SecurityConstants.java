@@ -9,6 +9,8 @@ public class SecurityConstants {
     public static final String HEADER_STRING = "Authorization";
     public static final String SIGN_UP_URL = "/users";
     public static final String VERIFICATION_EMAIL_URL = "/users/email-verification";
+    public static final String UPLOAD_CSV_URL = "/api/upload/csv";
+    public static final String UPLOAD_JSON_URL = "/api/upload/json";
     public static final String PASSWORD_RESET_REQUEST_URL = "/users/password-reset-request";
     public static final String PASSWORD_RESET_URL = "/users/password-reset";
     public static final String IMAGE = "/users/image/**";

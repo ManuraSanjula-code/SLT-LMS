@@ -6,8 +6,8 @@ import com.slt.peotv.lmsmangmentservice.entity.Attendance.types.AttendanceTypeEn
 import com.slt.peotv.lmsmangmentservice.entity.Leave.LeaveEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
-import com.slt.peotv.lmsmangmentservice.entity.MovementsEntity;
-import com.slt.peotv.lmsmangmentservice.entity.NoPayEntity;
+import com.slt.peotv.lmsmangmentservice.entity.Movement.MovementsEntity;
+import com.slt.peotv.lmsmangmentservice.entity.NoPay.NoPayEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 
 import java.util.List;

@@ -10,161 +10,74 @@ import java.sql.Time;
 import java.util.Date;
 import java.util.Objects;
 
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.sql.Time;
+import java.util.Date;
+
 @Entity
-@Table(name="attendance")
+@Table(name = "attendance")
 @Getter
 @Setter
 @EqualsAndHashCode
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class AttendanceEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private String publicId;
 
-    @Column(nullable=false)
+    @Column(nullable = false)
     private Date date;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @Column(nullable=false)
-    private Boolean isFullDay;
+    @Builder.Default
+    private Boolean isFullDay = false;
+    private Date arrivalDate;
+    private Time arrivalTime;
+    private Time leftTime;
 
-    private Date arrival_date;
+    @Builder.Default
+    private Boolean isLate = false;
 
-    private Time arrival_time;
+    @Builder.Default
+    private Boolean lateCover = false;
 
-    private Time left_time;
+    @Builder.Default
+    private Boolean isHalfDay = false;
 
-    @Column(nullable=false)
-    private Boolean isLate; // ❌❌
+    @Builder.Default
+    private Boolean isShortLeave = false;
 
-    @Column(nullable=false)
-    private Boolean lateCover; // ❌❌
+    @Builder.Default
+    private Boolean isAbsent = false;
 
-    @Column(nullable=false)
-    private Boolean isHalfDay; //❌❌
+    @Builder.Default
+    private Boolean isUnSuccessful = false;
 
-    @Column(nullable=false)
-    private Boolean isShortLeave; //❌❌
+    @Builder.Default
+    private Boolean isNoPay = false;
 
-    @Column(nullable=false)
-    private Boolean isAbsent; //❌❌
+    @Builder.Default
+    private Boolean issues = false;
 
-    @Column(nullable=false)
-    private Boolean isUnSuccessful; // ❌❌
+    @Builder.Default
+    private Boolean isUnAuthorized = false;
 
-    public Time getLeft_time() {
-        return left_time;
-    }
+    @Builder.Default
+    private Boolean resolve = false;
 
-    public void setLeft_time(Time left_time) {
-        this.left_time = left_time;
-    }
+    @Column(length = 1000)
+    private String issueDescription;
 
-    public long getId() {
-        return id;
-    }
+    private Date dueDateForUA;
 
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public Boolean getHalfDay() {
-        return isHalfDay;
-    }
-
-    public void setHalfDay(Boolean halfDay) {
-        isHalfDay = halfDay;
-    }
-
-    public Boolean getAbsent() {
-        return isAbsent;
-    }
-
-    public void setAbsent(Boolean absent) {
-        isAbsent = absent;
-    }
-
-    public Boolean getUnSuccessful() {
-        return isUnSuccessful;
-    }
-
-    public void setUnSuccessful(Boolean unSuccessful) {
-        isUnSuccessful = unSuccessful;
-    }
-
-    public Date getDate() {
-        return date;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
-
-    public Boolean getFullDay() {
-        return isFullDay;
-    }
-
-    public void setFullDay(Boolean fullDay) {
-        isFullDay = fullDay;
-    }
-
-    public Date getArrival_date() {
-        return arrival_date;
-    }
-
-    public void setArrival_date(Date arrival_date) {
-        this.arrival_date = arrival_date;
-    }
-
-    public Time getArrival_time() {
-        return arrival_time;
-    }
-
-    public void setArrival_time(Time arrival_time) {
-        this.arrival_time = arrival_time;
-    }
-
-    public Boolean getLate() {
-        return isLate;
-    }
-
-    public void setLate(Boolean late) {
-        isLate = late;
-    }
-
-    public String getPublicId() {
-        return publicId;
-    }
-
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
-    }
-
-    public Boolean getLateCover() {
-        return lateCover;
-    }
-
-    public void setLateCover(Boolean lateCover) {
-        this.lateCover = lateCover;
-    }
-
-    public Boolean getShortLeave() {
-        return isShortLeave;
-    }
-
-    public void setShortLeave(Boolean shortLeave) {
-        isShortLeave = shortLeave;
-    }
 }

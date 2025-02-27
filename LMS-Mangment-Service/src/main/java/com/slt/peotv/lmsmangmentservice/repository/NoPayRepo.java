@@ -1,6 +1,6 @@
 package com.slt.peotv.lmsmangmentservice.repository;
 
-import com.slt.peotv.lmsmangmentservice.entity.NoPayEntity;
+import com.slt.peotv.lmsmangmentservice.entity.NoPay.NoPayEntity;
 import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;

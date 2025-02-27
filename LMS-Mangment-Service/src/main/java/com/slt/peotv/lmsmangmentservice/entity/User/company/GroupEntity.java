@@ -19,27 +19,17 @@ public class GroupEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
-    @Column(nullable = false)
     public String publicId;
 
-    @Column(nullable = false)
     private String description;
 
     @ManyToOne
-    @JoinColumn(name = "leave_type_id", nullable = false)
+    @JoinColumn(name = "leave_type_id")
     private LeaveTypeEntity leaveType;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
-
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
 
     public long getId() {
         return id;
@@ -47,6 +37,14 @@ public class GroupEntity {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     public String getDescription() {
@@ -65,12 +63,12 @@ public class GroupEntity {
         this.leaveType = leaveType;
     }
 
-    public String getPublicId() {
-        return publicId;
+    public UserEntity getUser() {
+        return user;
     }
 
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
+    public void setUser(UserEntity user) {
+        this.user = user;
     }
 
     @Override

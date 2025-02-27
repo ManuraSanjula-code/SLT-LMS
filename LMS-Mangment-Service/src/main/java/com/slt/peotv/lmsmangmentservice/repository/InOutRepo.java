@@ -79,6 +79,9 @@ public interface InOutRepo extends CrudRepository<InOutEntity, Long> {
     @Query("SELECT i FROM InOutEntity i WHERE DATE(i.pushInOut) = DATE(:yesterday) AND i.time BETWEEN '17:00:00' AND '17:30:00'")
     List<InOutEntity> findEmployeesLeavingBetween5And530(@Param("yesterday") Date yesterday);
 
+    @Query("SELECT i FROM InOutEntity i WHERE DATE(i.pushInOut) = DATE(:yesterday) AND i.time BETWEEN '17:00:00' AND '23:59:00'")
+    List<InOutEntity> findEmployeesLeavingBetween5And530_(@Param("yesterday") Date yesterday);
+
     @Query("SELECT i FROM InOutEntity i WHERE DATE(i.pushInOut) = DATE(:yesterday) AND i.time > '08:30:00' AND i.time <= '09:00:00' AND i.InOut = true")
     List<InOutEntity> findLateEmployeesWithCoveredTime(@Param("yesterday") Date yesterday);
 
@@ -95,6 +98,58 @@ public interface InOutRepo extends CrudRepository<InOutEntity, Long> {
     boolean didEmployeeNotCoverLateTime(@Param("employeeID") String employeeID, @Param("userId") String userId, @Param("yesterday") Date yesterday);
 
     Optional<InOutEntity> findInOutByUserAndDate(@Param("userId") String userId, @Param("date") Date date);
+
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday " +
+            "AND i.timeMoa < '08:30:00' AND i.isEvening = false")
+    List<InOutEntity> findMorningPunchOnly(@Param("yesterday") Date yesterday);
+
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday " +
+            "AND i.timeEve BETWEEN '17:00:00' AND '23:59:59' AND i.isMoaning = false")
+    List<InOutEntity> findEveningPunchOnly(@Param("yesterday") Date yesterday);
+
+    /// ==========
+
+    // Employees who did not arrive before 8:30 AM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa IS NULL")
+    List<InOutEntity> findEmployeesNotArrivedBefore830AM(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived between 8:30 AM - 9:00 AM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa BETWEEN '08:30:00' AND '09:00:00'")
+    List<InOutEntity> findEmployeesArrivedBetween830And900AM(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived between 10:00 AM - 11:59 AM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa BETWEEN '10:00:00' AND '11:59:59'")
+    List<InOutEntity> findEmployeesArrivedBetween10AMAnd1159AM(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived between 12:00 PM - 2:00 PM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa BETWEEN '12:00:00' AND '14:00:00'")
+    List<InOutEntity> findEmployeesArrivedBetween12PMAnd2PM(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived between 2:00 PM - 5:00 PM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa BETWEEN '14:00:00' AND '17:00:00'")
+    List<InOutEntity> findEmployeesArrivedBetween2PMAnd5PM(@Param("yesterday") Date yesterday);
+
+    /// ===========
+
+    // Employees who arrived late (after 8:30 AM) but before 9:00 AM
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa BETWEEN '08:30:00' AND '09:00:00'")
+    List<InOutEntity> findEmployeesArrivedBetween830And900AM_1(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived late (after 9:00 AM)
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa > '09:00:00'")
+    List<InOutEntity> findEmployeesArrivedLateAfter9AM(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived after 12:30 PM (more than 4 hours late) → Half-day policy applies
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa > '12:30:00'")
+    List<InOutEntity> findEmployeesHalfDay(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived late but covered their extra work time
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa > '08:30:00' AND TIMESTAMPDIFF(MINUTE, i.timeEve, '17:30:00') >= TIMESTAMPDIFF(MINUTE, '08:30:00', i.timeMoa)")
+    List<InOutEntity> findEmployeesWhoCoveredLateTime(@Param("yesterday") Date yesterday);
+
+    // Employees who arrived late and did NOT cover their late work time
+    @Query("SELECT i FROM InOutEntity i WHERE i.date = :yesterday AND i.timeMoa > '08:30:00' AND TIMESTAMPDIFF(MINUTE, i.timeEve, '17:30:00') < TIMESTAMPDIFF(MINUTE, '08:30:00', i.timeMoa)")
+    List<InOutEntity> findEmployeesWhoDidNotCoverLateTime(@Param("yesterday") Date yesterday);
 
 }
 

@@ -17,22 +17,16 @@ public class UserEntity implements Serializable {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long id;
 	
-	@Column(nullable=false)
-	private String userId; //// Employee Id
-	///
-	@Column(nullable=false)
+	private String userId;
+
 	private String employeeId;
 
-	@Column(nullable=false, length=50)
 	private String firstName;
 	
-	@Column(nullable=false, length=50)
 	private String lastName;
 	
-	@Column(nullable=false, length=120)
 	private String email;
 	
-	@Column(nullable=false)
 	private String encryptedPassword;
 	
 	private String emailVerificationToken;
@@ -47,31 +41,29 @@ public class UserEntity implements Serializable {
 
 	private String profilePic;
 
-	//==================================================
-
-	@Column(name = "gender", length = 1,nullable=false)
+	@Column(name = "gender", length = 1)
 	private String gender;
 
-	@Column(name = "phone", length = 45, nullable=false)
+	@Column(name = "phone", length = 45)
 	private String phone;
 
-	@Column(name = "section", length = 45,nullable=false)
+	@Column(name = "section", length = 45)
 	private String section;
 
-	@Column(name = "send_no_pay_alert", columnDefinition = "int(11) default 1",nullable=false)
+	@Column(name = "send_no_pay_alert", columnDefinition = "int(11) default 1")
 	private Integer sendNoPayAlert;
 
-	@Column(name = "is_slt_emp", nullable = false, columnDefinition = "int(10) unsigned default 0")
+	@Column(name = "is_slt_emp",columnDefinition = "int(10) unsigned default 0")
 	private Integer isSltEmp;
 
-	@Column(name = "is_weekend_works", nullable = false, columnDefinition = "int(10) unsigned default 0")
+	@Column(name = "is_weekend_works",columnDefinition = "int(10) unsigned default 0")
 	private Integer isWeekendWorks;
 
-	@Column(name = "hod_id", nullable = false)
+	@Column(name = "hod_id")
 	private Integer hodId;
 
 	@Column(nullable=false)
-	private Integer active;
+	private Integer active = 1;
 
 	@ManyToMany(cascade= { CascadeType.PERSIST }, fetch = FetchType.EAGER )
 	@JoinTable(name="users_roles",
