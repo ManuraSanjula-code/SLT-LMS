@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -14,7 +15,9 @@ import java.util.Objects;
 @Setter
 @Getter
 @EqualsAndHashCode
-public class SectionEntity {
+public class SectionEntity implements Serializable {
+    private static final long serialVersionUID = 5566760523447927363L;
+
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private long id;

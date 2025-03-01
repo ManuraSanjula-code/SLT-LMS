@@ -2,14 +2,13 @@ package com.slt.peotv.lmsmangmentservice.entity.Leave;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Date;
 
 @Entity
-@Table(name="leave_requests")
+@Table(name = "leave_requests")
 @Setter
 @Getter
 @EqualsAndHashCode
@@ -18,16 +17,12 @@ import java.util.Date;
 @NoArgsConstructor
 public class LeaveEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
-
     @Column(nullable = false)
     public String publicId;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
+    private String employeeID;
 
     @Column(name = "submit_date", nullable = false)
     private Date submitDate;
@@ -38,13 +33,22 @@ public class LeaveEntity {
     @Column(name = "to_date", nullable = false)
     private Date toDate;
 
+    /*@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "leave_category_id", referencedColumnName = "id", nullable = false)
+    private LeaveCategoryEntity leaveCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "leave_type_id", referencedColumnName = "id", nullable = false)
+    private LeaveTypeEntity leaveType;*/
+
     @ManyToOne
-    @JoinColumn(name = "leave_category_id")
+    @JoinColumn(name = "leave_category_id", foreignKey = @ForeignKey(name = "FK_leave_category"))
     private LeaveCategoryEntity leaveCategory;
 
     @ManyToOne
-    @JoinColumn(name = "leave_type_id")
+    @JoinColumn(name = "leave_type_id", foreignKey = @ForeignKey(name = "FK_leave_type"))
     private LeaveTypeEntity leaveType;
+
 
     @Column(name = "is_supervised_approved", nullable = false, columnDefinition = "int(10) unsigned default '0'")
     @Builder.Default
@@ -80,6 +84,10 @@ public class LeaveEntity {
     private Boolean isAccepted = false;
     @Builder.Default
     private Boolean notUsed = false;
-
+    @Builder.Default
+    private Boolean isCanceled = false;
+    @Builder.Default
+    private Boolean isManualRequest = false;
     private Date happenDate;
+
 }

@@ -1,5 +1,6 @@
 package com.slt.peotv.userservice.lms.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.slt.peotv.userservice.lms.entity.RoleEntity;
 import com.slt.peotv.userservice.lms.entity.UserEntity;
 import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
@@ -16,8 +17,8 @@ import java.net.MalformedURLException;
 import java.util.List;
 
 public interface UserService extends UserDetailsService{
-	UserDto createUser(UserDto user);
-	UserDto updateUserProfile(MultipartFile file, String userid) throws IOException;
+	UserDto createUser(UserDto user) throws Exception;
+	UserDto updateUserProfile(MultipartFile file, String userid) throws Exception;
 	UserDto getUser(String email);
 	UserDto getUserByUserId(String userId);
 	UserDto updateUser(String userId, UserDto user);

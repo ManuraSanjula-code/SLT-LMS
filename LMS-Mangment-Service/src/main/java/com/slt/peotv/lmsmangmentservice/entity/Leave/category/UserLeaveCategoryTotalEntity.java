@@ -1,7 +1,6 @@
 package com.slt.peotv.lmsmangmentservice.entity.Leave.category;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,9 +20,7 @@ public class UserLeaveCategoryTotalEntity {
 
     private String publicId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    private String employeeID;
 
     @ManyToOne
     @JoinColumn(name = "leave_category_id")
@@ -47,12 +44,12 @@ public class UserLeaveCategoryTotalEntity {
         this.publicId = publicId;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public String getEmployeeID() {
+        return employeeID;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setEmployeeID(String employeeID) {
+        this.employeeID = employeeID;
     }
 
     public LeaveCategoryEntity getLeaveCategory() {
@@ -75,12 +72,12 @@ public class UserLeaveCategoryTotalEntity {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         UserLeaveCategoryTotalEntity that = (UserLeaveCategoryTotalEntity) o;
-        return Objects.equals(id, that.id) && Objects.equals(publicId, that.publicId) && Objects.equals(user, that.user) && Objects.equals(leaveCategory, that.leaveCategory) && Objects.equals(totalLeaves, that.totalLeaves);
+        return Objects.equals(id, that.id) && Objects.equals(publicId, that.publicId) && Objects.equals(employeeID, that.employeeID) && Objects.equals(leaveCategory, that.leaveCategory) && Objects.equals(totalLeaves, that.totalLeaves);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, publicId, user, leaveCategory, totalLeaves);
+        return Objects.hash(id, publicId, employeeID, leaveCategory, totalLeaves);
     }
 }
 

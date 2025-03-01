@@ -12,6 +12,15 @@ public class LeaveReq {
     private Long numOfDays;
     private Date happenDate; /// Event that Happened
     private Boolean isUnauthorized;
+    private Boolean isManualRequest;
+
+    public Boolean getManualRequest() {
+        return isManualRequest;
+    }
+
+    public void setManualRequest(Boolean manualRequest) {
+        isManualRequest = manualRequest;
+    }
 
     public Boolean getUnauthorized() {
         return isUnauthorized;

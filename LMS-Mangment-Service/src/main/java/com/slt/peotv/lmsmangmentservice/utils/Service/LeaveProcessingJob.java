@@ -31,9 +31,9 @@ public class LeaveProcessingJob {
             for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
                 Date processDate = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
                 if(leave.getIsSupervisedApproved() && leave.getIsHODApproved())
-                    attendanceProcessingService.processEmployeeLeave(leave.getUser().getId(), processDate, true);
+                    attendanceProcessingService.processEmployeeLeave(leave.getEmployeeID(), processDate, true);
                 else
-                    attendanceProcessingService.processEmployeeLeave(leave.getUser().getId(), processDate, false);
+                    attendanceProcessingService.processEmployeeLeave(leave.getEmployeeID(), processDate, false);
             }
         }
     }

@@ -3,9 +3,11 @@ package com.slt.peotv.userservice.lms.contoller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slt.peotv.userservice.lms.entity.RoleEntity;
 import com.slt.peotv.userservice.lms.entity.UserEntity;
+import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import com.slt.peotv.userservice.lms.repository.RoleRepository;
 import com.slt.peotv.userservice.lms.repository.UserRepository;
 import com.slt.peotv.userservice.lms.service.UserService;
+import com.slt.peotv.userservice.lms.shared.Messaging.UserEventPublisher;
 import com.slt.peotv.userservice.lms.shared.Roles;
 import com.slt.peotv.userservice.lms.shared.Utils;
 import org.apache.commons.csv.CSVFormat;
@@ -13,6 +15,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.io.InputStream;
@@ -39,7 +40,8 @@ public class FileUploadController {
     private Utils utils;
     @Autowired
     private UserService userService;
-
+    @Autowired
+    private UserEventPublisher userEventPublisher;
     @Autowired
     private RoleRepository roleRepository;
 
@@ -74,7 +76,6 @@ public class FileUploadController {
                 user.setLastName(row.getCell(3).getStringCellValue());
                 user.setEmail(row.getCell(4).getStringCellValue());
                 user.setPhone(row.getCell(5).getStringCellValue());
-                user.setSection(row.getCell(6).getStringCellValue());
                 user.setGender(row.getCell(7).getStringCellValue());
                 user.setActive((int) row.getCell(8).getNumericCellValue());
                 users.add(user);
@@ -93,6 +94,7 @@ public class FileUploadController {
             processUsers(users);
             return ResponseEntity.ok("CSV file processed successfully.");
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Error processing CSV file: " + e.getMessage());
         }
     }
@@ -100,6 +102,7 @@ public class FileUploadController {
     @Async
     @Transactional
     public void processUsers(List<UserEntity> users) {
+        ModelMapper mapper = new ModelMapper();
         for (UserEntity user : users) {
             Optional<UserEntity> existingUser = Optional.ofNullable(userRepository.findByEmail(user.getEmail()));
             if (existingUser.isPresent()) {
@@ -107,10 +110,14 @@ public class FileUploadController {
                 dbUser.setFirstName(user.getFirstName());
                 dbUser.setLastName(user.getLastName());
                 dbUser.setPhone(user.getPhone());
-                dbUser.setSection(user.getSection());
                 dbUser.setGender(user.getGender());
                 dbUser.setActive(user.getActive());
-                userRepository.save(dbUser);
+
+                dbUser.setSections(user.getSections());
+                dbUser.setRoles(user.getRoles());
+
+                UserEntity save = userRepository.save(dbUser);
+
             } else {
                 String tempPassword = UUID.randomUUID().toString();
                 tempPasswords.put(user.getEmail(), passwordEncoder.encode(tempPassword));
@@ -173,6 +180,15 @@ public class FileUploadController {
                     }
                 }
                 user.setRoles(roleEntities);
+
+                List<SectionEntity> sectionEntities = new ArrayList<>();
+                String section_  = record.get(21);
+                SectionEntity section = userService.getSection(section_);
+                if(section == null)
+                    section = userService.createSection(section_);
+
+                sectionEntities.add(section);
+                user.setSections(sectionEntities);
 
                 users.add(user);
             }

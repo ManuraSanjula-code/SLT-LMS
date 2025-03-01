@@ -15,7 +15,7 @@ import lombok.*;
 public class AttendanceTypeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     private String publicId;
     private String shortName;

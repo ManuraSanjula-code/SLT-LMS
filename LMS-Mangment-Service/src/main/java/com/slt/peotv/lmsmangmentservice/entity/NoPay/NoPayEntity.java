@@ -2,11 +2,7 @@ package com.slt.peotv.lmsmangmentservice.entity.NoPay;
 
 import com.slt.peotv.lmsmangmentservice.entity.Attendance.AttendanceEntity;
 import jakarta.persistence.*;
-
 import java.util.Date;
-import java.util.Objects;
-
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import lombok.*;
 
 @Entity
@@ -20,13 +16,11 @@ import lombok.*;
 public class NoPayEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     public String publicId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    private String employeeID;
 
     @Column(name = "submission_date")
     private Date submissionDate;

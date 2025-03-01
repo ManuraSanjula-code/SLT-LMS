@@ -8,10 +8,8 @@ import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveCategoryEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Movement.MovementsEntity;
 import com.slt.peotv.lmsmangmentservice.entity.NoPay.NoPayEntity;
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import com.slt.peotv.lmsmangmentservice.exceptions.LMSServiceException_AllReadyExits;
 import com.slt.peotv.lmsmangmentservice.repository.*;
-import com.slt.peotv.lmsmangmentservice.repository.archive.InOutRepo_;
 import com.slt.peotv.lmsmangmentservice.service.LMS_Service;
 import com.slt.peotv.lmsmangmentservice.exceptions.ErrorMessages;
 import com.slt.peotv.lmsmangmentservice.utils.Utils;
@@ -32,10 +30,6 @@ public class LMS_Service_impl implements LMS_Service {
     @Autowired
     private AttendanceTypeRepo attendanceTypeRepo;
     @Autowired
-    private AuthorityRepo authorityRepo;
-    @Autowired
-    private GroupRepo groupRepo;
-    @Autowired
     private LeaveCategoryRepo leaveCategoryRepo;
     @Autowired
     private LeaveRepo leaveRepo;
@@ -45,10 +39,7 @@ public class LMS_Service_impl implements LMS_Service {
     private MovementsRepo movementsRepo;
     @Autowired
     private NoPayRepo noPayRepo;
-    @Autowired
-    private UserRepo userRepo;
-    @Autowired
-    private InOutRepo_ inOutRepo_;
+
     @Autowired
     private Utils utils;
 
@@ -60,7 +51,7 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public AbsenteeEntity getOneAbsentee(String publicId, String useId, String employeeId) {
+    public AbsenteeEntity getOneAbsentee(String publicId,String employeeId) {
         Optional<AbsenteeEntity> byPublicId = absenteeRepo.findByPublicId(publicId);
         if(byPublicId.isPresent()) {
             return byPublicId.get();
@@ -69,19 +60,9 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public void saveAbsentee(String userId, String employeeId, Boolean isHalfDay, Boolean swipeErr) {
+    public void saveAbsentee(String employeeId, Boolean isHalfDay, Boolean swipeErr) {
         AbsenteeEntity absentee = new AbsenteeEntity();
-        UserEntity userByUserId = userRepo.findByUserId(userId);
-        UserEntity userByEmployeeId = userRepo.findByEmployeeId(employeeId);
-
-        UserEntity user = new UserEntity();
-
-        if (userByEmployeeId != null)
-            user = userByEmployeeId;
-        else
-            user = userByUserId;
-
-        absentee.setUser(user);
+        absentee.setEmployeeID(employeeId);
         absentee.setIsHalfDay(isHalfDay);
 
         absenteeRepo.save(absentee);
@@ -102,17 +83,15 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public List<AttendanceEntity> getAttendanceByUserId(String userId) {
-        UserEntity userByEmployeeId = getUserByUserId(userId);
-        if (userByEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return attendanceRepo.findByUser(userByEmployeeId);
+    public List<AttendanceEntity> getAttendanceByUserId(String employeeId) {
+        if (employeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return attendanceRepo.findByEmployeeID(employeeId);
     }
 
     @Override
     public List<AttendanceEntity> getAttendanceByEmployeeId(String employeeId) {
-        UserEntity userByEmployeeId = getUserByEmployeeId(employeeId);
-        if (userByEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return attendanceRepo.findByUser(userByEmployeeId);
+        if (employeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return attendanceRepo.findByEmployeeID(employeeId);
     }
 
     @Override
@@ -121,8 +100,8 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public List<MovementsEntity> getAllMovementByUser(UserEntity user) {
-        List<MovementsEntity> allByUser = movementsRepo.findAllByUser(user);
+    public List<MovementsEntity> getAllMovementByUser(String employeeId) {
+        List<MovementsEntity> allByUser = movementsRepo.findAllByEmployeeID(employeeId);
         if (allByUser.isEmpty()) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
         return allByUser;
     }
@@ -179,8 +158,8 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public List<NoPayEntity> getAllNoPayByUser(UserEntity user) {
-        List<NoPayEntity> byUser = noPayRepo.findByUser(user);
+    public List<NoPayEntity> getAllNoPayByUser(String employeeId) {
+        List<NoPayEntity> byUser = noPayRepo.findByEmployeeID(employeeId);
         if (byUser.isEmpty()) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
         return byUser;
     }
@@ -216,17 +195,15 @@ public class LMS_Service_impl implements LMS_Service {
     }
 
     @Override
-    public List<LeaveEntity> getAllLeaveByUserByPubicId(String user) {
-        UserEntity userEntity = userRepo.findByUserId(user);
-        if (userEntity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return leaveRepo.findByUser(userEntity);
+    public List<LeaveEntity> getAllLeaveByUserByPubicId(String employeeId) {
+        if (employeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return leaveRepo.findByEmployeeID(employeeId);
     }
 
     @Override
-    public List<LeaveEntity> getAllLeaveByUserByEmployeeId(String user) {
-        UserEntity userEntity = userRepo.findByEmployeeId(user);
-        if (userEntity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return leaveRepo.findByUser(userEntity);
+    public List<LeaveEntity> getAllLeaveByUserByEmployeeId(String employeeId) {
+        if (employeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        return leaveRepo.findByEmployeeID(employeeId);
     }
 
     @Override
@@ -250,49 +227,6 @@ public class LMS_Service_impl implements LMS_Service {
             leaveRepo.delete(byPublicId.get());
         } else
             throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-    }
-
-    @Override
-    public void saveUser(UserEntity entity) {
-        if (getUserByUserId(entity.getUserId()) != null)
-            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
-        else if (getUserByEmployeeId(entity.getEmployeeId()) != null)
-            throw new LMSServiceException_AllReadyExits(ErrorMessages.RECORD_ALREADY_EXISTS.getErrorMessage());
-        userRepo.save(entity);
-    }
-
-    @Override
-    public List<UserEntity> getAllUsers() {
-        return (List<UserEntity>) userRepo.findAll();
-    }
-
-
-    @Override
-    public UserEntity getUserByUserId(String user) {
-        UserEntity byEmployeeId = userRepo.findByUserId(user);
-        if (byEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return byEmployeeId;
-    }
-
-    @Override
-    public UserEntity getUserByEmployeeId(String user) {
-        UserEntity byEmployeeId = userRepo.findByEmployeeId(user);
-        if (byEmployeeId == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        return byEmployeeId;
-    }
-
-    @Override
-    public void deleteUserByUserId(String user) {
-        UserEntity entity = userRepo.findByUserId(user);
-        if (entity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        else userRepo.delete(entity);
-    }
-
-    @Override
-    public void deleteUserByEmployeeID(String user) {
-        UserEntity entity = userRepo.findByEmployeeId(user);
-        if (entity == null) throw new NoSuchElementException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
-        else userRepo.delete(entity);
     }
 
     @Override

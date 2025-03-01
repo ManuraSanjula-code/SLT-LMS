@@ -1,20 +1,12 @@
 package com.slt.peotv.lmsmangmentservice.entity.Attendance;
 
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.sql.Time;
 import java.util.Date;
-import java.util.Objects;
-
-import jakarta.persistence.*;
 import lombok.*;
-
-import java.sql.Time;
-import java.util.Date;
 
 @Entity
 @Table(name = "attendance")
@@ -27,7 +19,7 @@ import java.util.Date;
 public class AttendanceEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     @Column(nullable = false)
     private String publicId;
@@ -35,10 +27,7 @@ public class AttendanceEntity {
     @Column(nullable = false)
     private Date date;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
-
+    private String employeeID;
     @Builder.Default
     private Boolean isFullDay = false;
     private Date arrivalDate;

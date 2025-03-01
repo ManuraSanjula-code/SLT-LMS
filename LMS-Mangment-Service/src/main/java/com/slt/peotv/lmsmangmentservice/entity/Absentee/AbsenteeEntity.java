@@ -1,9 +1,7 @@
 package com.slt.peotv.lmsmangmentservice.entity.Absentee;
 
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.Date;
 
 @Builder
@@ -15,18 +13,17 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AbsenteeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     @Column(nullable = false)
     private String publicId;
 
     private Date date;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    private String employeeID;
 
     @Column(name = "Is_halfday")
     @Builder.Default

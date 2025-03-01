@@ -1,24 +1,19 @@
 package com.slt.peotv.lmsmangmentservice.utils.Service;
 
 import com.slt.peotv.lmsmangmentservice.entity.Leave.LeaveEntity;
-import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveCategoryRemainingEntity;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.category.UserLeaveTypeRemaining;
 import com.slt.peotv.lmsmangmentservice.entity.Leave.types.LeaveTypeEntity;
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import com.slt.peotv.lmsmangmentservice.entity.card.InOutEntity;
-import com.slt.peotv.lmsmangmentservice.repository.InOutRepo;
-import com.slt.peotv.lmsmangmentservice.repository.LeaveRepo;
-import com.slt.peotv.lmsmangmentservice.repository.UserLeaveCategoryRemainingRepo;
-import com.slt.peotv.lmsmangmentservice.repository.UserLeaveTypeRemainingRepo;
+import com.slt.peotv.lmsmangmentservice.repository.*;
+import com.slt.peotv.lmsmangmentservice.service.Check_Service;
 import com.slt.peotv.lmsmangmentservice.service.ServiceEvent;
-import com.slt.peotv.lmsmangmentservice.service.impl.Check_Service_Impl;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.sql.Time;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AttendanceProcessingService {
@@ -32,145 +27,123 @@ public class AttendanceProcessingService {
     @Autowired
     private UserLeaveTypeRemainingRepo userLeaveTypeRemainingRepo;
     @Autowired
-    private UserLeaveCategoryRemainingRepo userLeaveCategoryRemainingRepo;
-    @Autowired
-    private Check_Service_Impl checkService;
+    private Check_Service checkService;
 
     @Transactional
-    public void processEmployeeLeave(Long userId, Date processDate, Boolean isProved) {
-        List<LeaveEntity> activeLeaves = leaveRepository.findActiveLeaveByUserAndDate(userId, processDate);
+    public void processEmployeeLeave(String employeeId, Date processDate, Boolean isProved) {
+        if (employeeId.isEmpty())
+            return;
+        List<LeaveEntity> activeLeaves = leaveRepository.findApprovedLeavesByEmployeeIDAndFromDateAndToDate(employeeId, processDate, processDate);
 
         if (activeLeaves.isEmpty()) {
             return; // No leave to process
         }
 
-        Optional<InOutEntity> attendanceRecord = inOutRepository.findInOutByUserAndDate(userId.toString(), processDate);
+        List<InOutEntity> attendanceRecords = inOutRepository.findByEmployeeIDAndDate(employeeId,processDate);
 
         for (LeaveEntity leave : activeLeaves) {
-            if (attendanceRecord.isPresent()) {
-                InOutEntity inOut = attendanceRecord.get();
-                UserEntity user = leave.getUser();
+            attendanceRecords.forEach(attendanceRecord -> {
+                if (attendanceRecord != null) {
+                    InOutEntity inOut = attendanceRecord;
 
-                boolean isLate = checkLateArrival(inOut);
-                boolean isShortLeave = checkShortLeave(inOut);
-                boolean isHalfDay = checkHalfDay(inOut);
-                boolean isFullDayAttendance = checkFullAttendance(inOut);
+                    boolean isLate = checkLateArrival(inOut);
+                    boolean isShortLeave = checkShortLeave(inOut);
+                    boolean isHalfDay = checkHalfDay(inOut);
+                    boolean isFullDayAttendance = checkFullAttendance(inOut);
 
-                UserLeaveCategoryRemainingEntity remaining_half_Day =
-                        serviceEvent.getUserLeaveCategoryRemaining("HALF_DAY", user.getUserId(), user.getEmployeeId());
-                UserLeaveCategoryRemainingEntity remaining_short_Leaves =
-                        serviceEvent.getUserLeaveCategoryRemaining("SHORT_LEAVE", user.getUserId(), user.getEmployeeId());
+                    UserLeaveTypeRemaining remaining_half_Day =
+                            serviceEvent.getUserLeaveTypeRemaining("HALF_DAY", employeeId);
+                    UserLeaveTypeRemaining remaining_short_Leaves =
+                            serviceEvent.getUserLeaveTypeRemaining("SHORT_LEAVE", employeeId);
 
-                if (isFullDayAttendance) {
-                    leave.setNotUsed(true); // Employee attended fully, so leave is not used.
-                } else if (isHalfDay) {
+                    if (isFullDayAttendance) {
+                        leave.setNotUsed(true); // Employee attended fully, so leave is not used.
+                        leave.setIsCanceled(true);
+                        leaveRepository.save(leave);
+                        leave.setDescription("CAME TO WORK EVEN THOUGH TODAY YOU MAKE A LEAVE BUT YOU CAME AND WORK FULL DAY");
+                        checkService.reportAttendance(attendanceRecord, true, false, false, false, false, false);
 
-                    /// leave will be canceled and another unAuthorized leave will pop up
-                    checkService.saveLeave(user, processDate);
+                    } else if (isHalfDay) {
+                        leave.setNotUsed(true);
+                        leave.setIsCanceled(true);
+                        leave.setDescription("CAME TO WORK EVEN THOUGH TODAY YOU MAKE A LEAVE BUT YOU CAME TO WORK IN FORM OF A HALF DAY");
+                        leaveRepository.save(leave);
+                        checkService.reportAttendance(attendanceRecord, false, true, false, false, false, true);
 
-                    /*leave.setNotUsed(true);
-                    leave.setIsHalfDay(true);
+                    } else if (isShortLeave) {
+                        checkService.reportAttendance(attendanceRecord, false, false, true, false, false, false);
 
-                    if (remaining_half_Day.getRemainingLeaves() < 1) {
-                        remaining_half_Day.setRemainingLeaves(remaining_half_Day.getRemainingLeaves() - 1);
-                        userLeaveCategoryRemainingRepo.save(remaining_half_Day);
-                    }else{
-                        if(leave.getUser() != null)
-                            Check_Service_Impl.saveNoPayEntity(leave.getUser(), true, false, false, false, false);
-                    }*/
-
-
-                } else if (isShortLeave) {
-                    leave.setNotUsed(true);
-                    leave.setIsShort_Leave(true);
-                    if (remaining_short_Leaves.getRemainingLeaves() < 1) {
-                        remaining_short_Leaves.setRemainingLeaves(remaining_short_Leaves.getRemainingLeaves() - 1);
-                        userLeaveCategoryRemainingRepo.save(remaining_short_Leaves);
-                    }else{
-                        if (remaining_half_Day.getRemainingLeaves() < 1) {
-
-                            /// unAuthorized leave will pop up
-                            checkService.saveLeave(user, processDate);
-
-                        }
+                    } else if (isLate) {
+                        checkService.reportAttendance(attendanceRecord, false, false, false, true, false, false);
+                        /// IF LATE IS COVER SET LATE_COVER TURE
                     }
 
-                    leave.setDescription("Short Leave Used");
+                } else {
+                    leave.setNotUsed(false);
+                    // No attendance record found → Employee was absent
+                    leave.setDescription("Absent - Leave Used");
+                    LeaveTypeEntity leaveType = leave.getLeaveType();
 
-                } else if (isLate) {
-                    leave.setNotUsed(true);
-                    leave.setDescription("Late but did not cover hours");
-
-                    /// unAuthorized leave will pop up
-                    checkService.saveLeave(user, processDate);
-
+                    String user = leave.getEmployeeID();
+                    if (user != null)
+                        switch (leaveType.getName()) {
+                            case "CASUAL" -> {
+                                UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", user);
+                                if (casual.getRemainingLeaves() < 1) {
+                                    casual.setRemainingLeaves(casual.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(casual);
+                                }
+                            }
+                            case "ANNUAL" -> {
+                                UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", user);
+                                if (annual.getRemainingLeaves() < 1) {
+                                    annual.setRemainingLeaves(annual.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(annual);
+                                }
+                            }
+                            case "SICK" -> {
+                                UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", user);
+                                if (sick.getRemainingLeaves() < 1) {
+                                    sick.setRemainingLeaves(sick.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(sick);
+                                }
+                            }
+                            case "SPECIAL" -> {
+                                UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", user);
+                                if (special.getRemainingLeaves() < 1) {
+                                    special.setRemainingLeaves(special.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(special);
+                                }
+                            }
+                            case "DUTY" -> {
+                                UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", user);
+                                if (duty.getRemainingLeaves() < 1) {
+                                    duty.setRemainingLeaves(duty.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(duty);
+                                }
+                            }
+                            case "MATERNITY_LEAVE" -> {
+                                UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", user);
+                                if (maternityLeave.getRemainingLeaves() < 1) {
+                                    maternityLeave.setRemainingLeaves(maternityLeave.getRemainingLeaves() - 1);
+                                    userLeaveTypeRemainingRepo.save(maternityLeave);
+                                }
+                            }
+                            default -> {
+                                throw new IllegalArgumentException("Invalid leave type: " + leaveType.getName());
+                            }
+                        }
+                    else
+                        return;
                 }
 
-            } else {
-                leave.setNotUsed(false);
-                // No attendance record found → Employee was absent
-                leave.setDescription("Absent - Leave Used");
-                LeaveTypeEntity leaveType = leave.getLeaveType();
-
-                UserEntity user = leave.getUser();
-                if (user != null)
-                    switch (leaveType.getName()) {
-                        case "CASUAL" -> {
-                            UserLeaveTypeRemaining casual = getUserLeaveTypeRemaining("CASUAL", user);
-                            if (casual.getRemainingLeaves() < 1) {
-                                casual.setRemainingLeaves(casual.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(casual);
-                            }
-                        }
-                        case "ANNUAL" -> {
-                            UserLeaveTypeRemaining annual = getUserLeaveTypeRemaining("ANNUAL", user);
-                            if (annual.getRemainingLeaves() < 1) {
-                                annual.setRemainingLeaves(annual.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(annual);
-                            }
-                        }
-                        case "SICK" -> {
-                            UserLeaveTypeRemaining sick = getUserLeaveTypeRemaining("SICK", user);
-                            if (sick.getRemainingLeaves() < 1) {
-                                sick.setRemainingLeaves(sick.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(sick);
-                            }
-                        }
-                        case "SPECIAL" -> {
-                            UserLeaveTypeRemaining special = getUserLeaveTypeRemaining("SPECIAL", user);
-                            if (special.getRemainingLeaves() < 1) {
-                                special.setRemainingLeaves(special.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(special);
-                            }
-                        }
-                        case "DUTY" -> {
-                            UserLeaveTypeRemaining duty = getUserLeaveTypeRemaining("DUTY", user);
-                            if (duty.getRemainingLeaves() < 1) {
-                                duty.setRemainingLeaves(duty.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(duty);
-                            }
-                        }
-                        case "MATERNITY_LEAVE" -> {
-                            UserLeaveTypeRemaining maternityLeave = getUserLeaveTypeRemaining("MATERNITY_LEAVE", user);
-                            if (maternityLeave.getRemainingLeaves() < 1) {
-                                maternityLeave.setRemainingLeaves(maternityLeave.getRemainingLeaves() - 1);
-                                userLeaveTypeRemainingRepo.save(maternityLeave);
-                            }
-                        }
-                        default -> {
-                            throw new IllegalArgumentException("Invalid leave type: " + leaveType.getName());
-                        }
-                    }
-                else
-                    return;
-            }
-
-            leaveRepository.save(leave);
+                leaveRepository.save(leave);
+            });
         }
     }
 
-    private UserLeaveTypeRemaining getUserLeaveTypeRemaining(String name, UserEntity user) {
-        return serviceEvent.getUserLeaveTypeRemaining(name, user.getUserId(), user.getEmployeeId());
+    private UserLeaveTypeRemaining getUserLeaveTypeRemaining(String name, String user) {
+        return serviceEvent.getUserLeaveTypeRemaining(name, user);
     }
 
 

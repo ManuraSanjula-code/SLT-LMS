@@ -1,5 +1,6 @@
 package com.slt.peotv.userservice.lms.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
 import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import jakarta.persistence.*;
@@ -7,7 +8,8 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
- 
+import java.util.Objects;
+
 @Entity
 @Table(name="users")
 public class UserEntity implements Serializable {
@@ -47,20 +49,10 @@ public class UserEntity implements Serializable {
 	@Column(name = "phone", length = 45)
 	private String phone;
 
-	@Column(name = "section", length = 45)
-	private String section;
-
-	@Column(name = "send_no_pay_alert", columnDefinition = "int(11) default 1")
-	private Integer sendNoPayAlert;
-
 	@Column(name = "is_slt_emp",columnDefinition = "int(10) unsigned default 0")
 	private Integer isSltEmp;
-
-	@Column(name = "is_weekend_works",columnDefinition = "int(10) unsigned default 0")
-	private Integer isWeekendWorks;
-
-	@Column(name = "hod_id")
-	private Integer hodId;
+	@Column(name = "is_slt_intern",columnDefinition = "int(10) unsigned default 0")
+	private Integer isSltIntern;
 
 	@Column(nullable=false)
 	private Integer active = 1;
@@ -70,6 +62,7 @@ public class UserEntity implements Serializable {
 			joinColumns=@JoinColumn(name="users_id",referencedColumnName="id"),
 			inverseJoinColumns=@JoinColumn(name="roles_id",referencedColumnName="id"))
 	@Column(nullable=false)
+	@JsonManagedReference
 	private Collection<RoleEntity> roles;
 
 	@ManyToMany(cascade= { CascadeType.PERSIST }, fetch = FetchType.EAGER )
@@ -86,100 +79,12 @@ public class UserEntity implements Serializable {
 	@Column(nullable=false)
 	private Collection<SectionEntity> sections;
 
-	public Collection<ProfilesEntity> getProfiles() {
-		return profiles;
+	public List<AddressEntity> getAddresses() {
+		return addresses;
 	}
 
-	public void setProfiles(Collection<ProfilesEntity> profiles) {
-		this.profiles = profiles;
-	}
-
-	public Collection<SectionEntity> getSections() {
-		return sections;
-	}
-
-	public void setSections(Collection<SectionEntity> sections) {
-		this.sections = sections;
-	}
-
-	public String getGender() {
-		return gender;
-	}
-
-	public void setGender(String gender) {
-		this.gender = gender;
-	}
-
-	public String getPhone() {
-		return phone;
-	}
-
-	public void setPhone(String phone) {
-		this.phone = phone;
-	}
-
-	public String getSection() {
-		return section;
-	}
-
-	public void setSection(String section) {
-		this.section = section;
-	}
-
-	public Integer getSendNoPayAlert() {
-		return sendNoPayAlert;
-	}
-
-	public void setSendNoPayAlert(Integer sendNoPayAlert) {
-		this.sendNoPayAlert = sendNoPayAlert;
-	}
-
-	public Integer getIsSltEmp() {
-		return isSltEmp;
-	}
-
-	public void setIsSltEmp(Integer isSltEmp) {
-		this.isSltEmp = isSltEmp;
-	}
-
-	public Integer getIsWeekendWorks() {
-		return isWeekendWorks;
-	}
-
-	public void setIsWeekendWorks(Integer isWeekendWorks) {
-		this.isWeekendWorks = isWeekendWorks;
-	}
-
-	public Integer getHodId() {
-		return hodId;
-	}
-
-	public void setHodId(Integer hodId) {
-		this.hodId = hodId;
-	}
-
-	public Integer getActive() {
-		return active;
-	}
-
-	public void setActive(Integer active) {
-		this.active = active;
-	}
-
-	public int getDefaultAddress() {
-		return defaultAddress;
-	}
-
-	public void setDefaultAddress(int defaultAddress) {
-		this.defaultAddress = defaultAddress;
-	}
-
-	public String getProfilePic() {
-		return profilePic;
-	}
-
-	public void setProfilePic(String profilePic) {
-		this.profilePic = profilePic;
+	public Collection<RoleEntity> getRoles() {
+		return roles;
 	}
 
 	public long getId() {
@@ -196,6 +101,14 @@ public class UserEntity implements Serializable {
 
 	public void setUserId(String userId) {
 		this.userId = userId;
+	}
+
+	public String getEmployeeId() {
+		return employeeId;
+	}
+
+	public void setEmployeeId(String employeeId) {
+		this.employeeId = employeeId;
 	}
 
 	public String getFirstName() {
@@ -246,30 +159,95 @@ public class UserEntity implements Serializable {
 		this.emailVerificationStatus = emailVerificationStatus;
 	}
 
-	@Column(nullable = false)
-	public List<AddressEntity> getAddresses() {
-		return addresses;
-	}
-
 	public void setAddresses(List<AddressEntity> addresses) {
 		this.addresses = addresses;
 	}
 
-	@Column(nullable = false)
-	public Collection<RoleEntity> getRoles() {
-		return roles;
+	public int getDefaultAddress() {
+		return defaultAddress;
+	}
+
+	public void setDefaultAddress(int defaultAddress) {
+		this.defaultAddress = defaultAddress;
+	}
+
+	public String getProfilePic() {
+		return profilePic;
+	}
+
+	public void setProfilePic(String profilePic) {
+		this.profilePic = profilePic;
+	}
+
+	public String getGender() {
+		return gender;
+	}
+
+	public void setGender(String gender) {
+		this.gender = gender;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public Integer getIsSltEmp() {
+		return isSltEmp;
+	}
+
+	public void setIsSltEmp(Integer isSltEmp) {
+		this.isSltEmp = isSltEmp;
+	}
+
+	public Integer getIsSltIntern() {
+		return isSltIntern;
+	}
+
+	public void setIsSltIntern(Integer isSltIntern) {
+		this.isSltIntern = isSltIntern;
+	}
+
+	public Integer getActive() {
+		return active;
+	}
+
+	public void setActive(Integer active) {
+		this.active = active;
 	}
 
 	public void setRoles(Collection<RoleEntity> roles) {
 		this.roles = roles;
 	}
 
-
-	public String getEmployeeId() {
-		return employeeId;
+	public Collection<ProfilesEntity> getProfiles() {
+		return profiles;
 	}
 
-	public void setEmployeeId(String employeeId) {
-		this.employeeId = employeeId;
+	public void setProfiles(Collection<ProfilesEntity> profiles) {
+		this.profiles = profiles;
+	}
+
+	public Collection<SectionEntity> getSections() {
+		return sections;
+	}
+
+	public void setSections(Collection<SectionEntity> sections) {
+		this.sections = sections;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass()) return false;
+		UserEntity that = (UserEntity) o;
+		return id == that.id && defaultAddress == that.defaultAddress && Objects.equals(userId, that.userId) && Objects.equals(employeeId, that.employeeId) && Objects.equals(firstName, that.firstName) && Objects.equals(lastName, that.lastName) && Objects.equals(email, that.email) && Objects.equals(encryptedPassword, that.encryptedPassword) && Objects.equals(emailVerificationToken, that.emailVerificationToken) && Objects.equals(emailVerificationStatus, that.emailVerificationStatus) && Objects.equals(addresses, that.addresses) && Objects.equals(profilePic, that.profilePic) && Objects.equals(gender, that.gender) && Objects.equals(phone, that.phone) && Objects.equals(isSltEmp, that.isSltEmp) && Objects.equals(isSltIntern, that.isSltIntern) && Objects.equals(active, that.active) && Objects.equals(roles, that.roles) && Objects.equals(profiles, that.profiles) && Objects.equals(sections, that.sections);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, userId, employeeId, firstName, lastName, email, encryptedPassword, emailVerificationToken, emailVerificationStatus, addresses, defaultAddress, profilePic, gender, phone, isSltEmp, isSltIntern, active, roles, profiles, sections);
 	}
 }

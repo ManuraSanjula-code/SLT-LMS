@@ -1,5 +1,6 @@
 package com.slt.peotv.userservice.lms.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
@@ -19,6 +20,7 @@ public class RoleEntity implements Serializable {
 	private String name;
 	
 	@ManyToMany(mappedBy="roles")
+	@JsonBackReference
 	private Collection<UserEntity> users;
 	
 	@ManyToMany(cascade= { CascadeType.PERSIST }, fetch = FetchType.EAGER )

@@ -1,21 +1,14 @@
 package com.slt.peotv.lmsmangmentservice.entity.Movement;
 
 import com.slt.peotv.lmsmangmentservice.entity.Attendance.AttendanceEntity;
-import com.slt.peotv.lmsmangmentservice.entity.User.UserEntity;
 import com.slt.peotv.lmsmangmentservice.model.types.MovementType;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.Date;
-import java.util.Objects;
-
-import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.Date;
 
 @Entity
 @Table(name = "movements")
@@ -31,10 +24,7 @@ public class MovementsEntity {
     private Long id;
 
     private String publicId;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    private String employeeID;
 
     @Column(name = "In_Time", length = 45)
     private String inTime;
@@ -74,13 +64,8 @@ public class MovementsEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date reqDate;
 
-    @ManyToOne
-    @JoinColumn(name = "hod_id")  // FIXED: Changed column name
-    private UserEntity hod;
-
-    @ManyToOne
-    @JoinColumn(name = "supervisor_id") // FIXED: Changed column name
-    private UserEntity supervisor;
+    private String hod;
+    private String supervisor;
 
     @Enumerated(EnumType.STRING)  // FIXED: Enum mapping
     private MovementType movementType;
@@ -89,7 +74,6 @@ public class MovementsEntity {
     @Builder.Default
     private Integer attSync = 0;
 
-    private Date dueDate;
     private Date happenDate; /// The Day situation happened to make a movement to resolve it
 
     @Builder.Default
@@ -114,4 +98,236 @@ public class MovementsEntity {
     @OneToOne
     @JoinColumn(name = "attendance_id")
     private AttendanceEntity attendance;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    public String getEmployeeID() {
+        return employeeID;
+    }
+
+    public void setEmployeeID(String employeeID) {
+        this.employeeID = employeeID;
+    }
+
+    public String getInTime() {
+        return inTime;
+    }
+
+    public void setInTime(String inTime) {
+        this.inTime = inTime;
+    }
+
+    public String getOutTime() {
+        return outTime;
+    }
+
+    public void setOutTime(String outTime) {
+        this.outTime = outTime;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public Date getLogTime() {
+        return logTime;
+    }
+
+    public void setLogTime(Date logTime) {
+        this.logTime = logTime;
+    }
+
+    public Date getSupAppTime() {
+        return supAppTime;
+    }
+
+    public void setSupAppTime(Date supAppTime) {
+        this.supAppTime = supAppTime;
+    }
+
+    public Date getManAppTime() {
+        return manAppTime;
+    }
+
+    public void setManAppTime(Date manAppTime) {
+        this.manAppTime = manAppTime;
+    }
+
+    public Date getHodAppTime() {
+        return hodAppTime;
+    }
+
+    public void setHodAppTime(Date hodAppTime) {
+        this.hodAppTime = hodAppTime;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getDestination() {
+        return destination;
+    }
+
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+
+    public String getEmployeeId() {
+        return employeeId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public Date getReqDate() {
+        return reqDate;
+    }
+
+    public void setReqDate(Date reqDate) {
+        this.reqDate = reqDate;
+    }
+
+    public String getHod() {
+        return hod;
+    }
+
+    public void setHod(String hod) {
+        this.hod = hod;
+    }
+
+    public String getSupervisor() {
+        return supervisor;
+    }
+
+    public void setSupervisor(String supervisor) {
+        this.supervisor = supervisor;
+    }
+
+    public MovementType getMovementType() {
+        return movementType;
+    }
+
+    public void setMovementType(MovementType movementType) {
+        this.movementType = movementType;
+    }
+
+    public Integer getAttSync() {
+        return attSync;
+    }
+
+    public void setAttSync(Integer attSync) {
+        this.attSync = attSync;
+    }
+
+    public Date getHappenDate() {
+        return happenDate;
+    }
+
+    public void setHappenDate(Date happenDate) {
+        this.happenDate = happenDate;
+    }
+
+    public Boolean getPending() {
+        return isPending;
+    }
+
+    public void setPending(Boolean pending) {
+        isPending = pending;
+    }
+
+    public Boolean getAccepted() {
+        return isAccepted;
+    }
+
+    public void setAccepted(Boolean accepted) {
+        isAccepted = accepted;
+    }
+
+    public Boolean getExpired() {
+        return isExpired;
+    }
+
+    public void setExpired(Boolean expired) {
+        isExpired = expired;
+    }
+
+    public Boolean getHalfDay() {
+        return isHalfDay;
+    }
+
+    public void setHalfDay(Boolean halfDay) {
+        isHalfDay = halfDay;
+    }
+
+    public Boolean getLate() {
+        return isLate;
+    }
+
+    public void setLate(Boolean late) {
+        isLate = late;
+    }
+
+    public Boolean getAbsent() {
+        return isAbsent;
+    }
+
+    public void setAbsent(Boolean absent) {
+        isAbsent = absent;
+    }
+
+    public Boolean getUnSuccessfulAttdate() {
+        return isUnSuccessfulAttdate;
+    }
+
+    public void setUnSuccessfulAttdate(Boolean unSuccessfulAttdate) {
+        isUnSuccessfulAttdate = unSuccessfulAttdate;
+    }
+
+    public Boolean getLateCover() {
+        return isLateCover;
+    }
+
+    public void setLateCover(Boolean lateCover) {
+        isLateCover = lateCover;
+    }
+
+    public Boolean getUnAuthorized() {
+        return unAuthorized;
+    }
+
+    public void setUnAuthorized(Boolean unAuthorized) {
+        this.unAuthorized = unAuthorized;
+    }
+
+    public AttendanceEntity getAttendance() {
+        return attendance;
+    }
+
+    public void setAttendance(AttendanceEntity attendance) {
+        this.attendance = attendance;
+    }
 }

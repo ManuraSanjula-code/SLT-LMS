@@ -9,6 +9,7 @@ import com.slt.peotv.userservice.lms.entity.UserEntity;
 import com.slt.peotv.userservice.lms.entity.company.ProfilesEntity;
 import com.slt.peotv.userservice.lms.entity.company.SectionEntity;
 import com.slt.peotv.userservice.lms.repository.*;
+import com.slt.peotv.userservice.lms.service.UserService;
 import com.slt.peotv.userservice.lms.shared.Roles;
 import com.slt.peotv.userservice.lms.shared.Utils;
 import com.slt.peotv.userservice.lms.shared.model.request.ProfileReq;
@@ -41,8 +42,12 @@ public class InitialUsersSetup {
     UserRepository userRepository;
     
     private final ModelMapper modelMapper = new ModelMapper();
+
     @Autowired
     private SectionRepo sectionRepo;
+
+    @Autowired
+    private UserService userService;
 
     @EventListener
     @Transactional
@@ -60,6 +65,19 @@ public class InitialUsersSetup {
         RoleEntity roleEMPLOYEE = createRole(Roles.ROLE_EMPLOYEE.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
         RoleEntity roleHOD = createRole(Roles.ROLE_HOD.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
         RoleEntity roleSUPAVISOR = createRole(Roles.ROLE_SUPERVISOR.name(), Arrays.asList(readAuthority,writeAuthority, deleteAuthority));
+
+        try{
+            SectionEntity he_mcr = userService.createSection("HE/MCR");
+            SectionEntity is_var = userService.createSection("IS/VAS");
+            SectionEntity finance = userService.createSection("FINANCE");
+            SectionEntity sales = userService.createSection("SALES");
+            SectionEntity admin = userService.createSection("ADMIN");
+            SectionEntity leagal = userService.createSection("LEAGAL");
+            SectionEntity marketing = userService.createSection("MARKETING");
+            SectionEntity media = userService.createSection("MEDIA");
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
 
         if(roleAdmin == null) return;
 
